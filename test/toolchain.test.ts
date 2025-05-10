@@ -1,14 +1,14 @@
 import { App, Aspects } from 'aws-cdk-lib';
 import { Annotations, Match } from 'aws-cdk-lib/assertions';
 import { AwsSolutionsChecks, NagSuppressions } from 'cdk-nag';
-import { StatelessStack } from '../infrastructure/toolchain/stateless-stack';
+import { StatelessDeployStack } from '../infrastructure/toolchain/stateless-deploy-stack';
 import { synthesisMessageToString } from './utils';
-import { StatefulStack } from '../infrastructure/toolchain/stateful-stack';
+import { StatefulDeployStack } from '../infrastructure/toolchain/stateful-deploy-stack';
 
 describe('cdk-nag-stateless-toolchain-stack', () => {
   const app = new App({});
 
-  const statelessStack = new StatelessStack(app, 'StatelessStack', {
+  const statelessStack = new StatelessDeployStack(app, 'StatelessStack', {
     env: {
       account: '123456789',
       region: 'ap-southeast-2',
@@ -43,7 +43,7 @@ describe('cdk-nag-stateless-toolchain-stack', () => {
 describe('cdk-nag-stateful-toolchain-stack', () => {
   const app = new App({});
 
-  const statefulStack = new StatefulStack(app, 'StatefulStack', {
+  const statefulStack = new StatefulDeployStack(app, 'StatefulStack', {
     env: {
       account: '123456789',
       region: 'ap-southeast-2',
