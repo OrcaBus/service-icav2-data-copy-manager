@@ -1,0 +1,172 @@
+{
+  "Comment": "A description of my state machine",
+  "StartAt": "Scan Table",
+  "States": {
+    "Scan Table": {
+      "Type": "Task",
+      "Arguments": {
+        "TableName": "${__table_name__}"
+      },
+      "Resource": "arn:aws:states:::aws-sdk:dynamodb:scan",
+      "Next": "Is Empty Table",
+      "Output": {
+        "jobIdAndTokenList": "{%  %}"
+      }
+    },
+    "Is Empty Table": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Next": "Disable Heartbeat rule",
+          "Condition": "{% $count($states.input.jobIdAndTokenList) == 0 %}"
+        }
+      ],
+      "Default": "For each job id in the table"
+    },
+    "Disable Heartbeat rule": {
+      "Type": "Task",
+      "Arguments": {
+        "Name": "${__heartbeat_event_bridge_rule_name__}"
+      },
+      "Resource": "arn:aws:states:::aws-sdk:eventbridge:disableRule",
+      "End": true
+    },
+    "For each job id in the table": {
+      "Type": "Map",
+      "ItemProcessor": {
+        "ProcessorConfig": {
+          "Mode": "DISTRIBUTED",
+          "ExecutionType": "STANDARD"
+        },
+        "StartAt": "Set input map vars",
+        "States": {
+          "Set input map vars": {
+            "Type": "Pass",
+            "Next": "Job ID is running",
+            "Assign": {
+              "jobId": "{% $states.input.jobId %}",
+              "taskToken": "{% $states.input.taskToken %}"
+            }
+          },
+          "Job ID is running": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Output": {
+              "status": "{% $states.result.Payload.status %}"
+            },
+            "Arguments": {
+              "FunctionName": "${__check_job_is_running_lambda_function_arn__}",
+              "Payload": {
+                "jobId": "{% $jobId %}"
+              }
+            },
+            "Retry": [
+              {
+                "ErrorEquals": [
+                  "Lambda.ServiceException",
+                  "Lambda.AWSLambdaException",
+                  "Lambda.SdkClientException",
+                  "Lambda.TooManyRequestsException"
+                ],
+                "IntervalSeconds": 1,
+                "MaxAttempts": 3,
+                "BackoffRate": 2,
+                "JitterStrategy": "FULL"
+              }
+            ],
+            "Next": "Send heart beat if still running",
+            "Catch": [
+              {
+                "ErrorEquals": ["States.Timeout", "States.ALL"],
+                "Next": "SendTaskHeartbeat",
+                "Comment": "Send the heartbeat anyway"
+              }
+            ]
+          },
+          "Send heart beat if still running": {
+            "Type": "Choice",
+            "Choices": [
+              {
+                "Next": "SendTaskHeartbeat",
+                "Condition": "{% $states.input.status == 'RUNNING' %}"
+              },
+              {
+                "Next": "SendTaskFailure",
+                "Condition": "{% $states.input.status == 'FAILED' %}"
+              }
+            ],
+            "Default": "SendTaskSuccess"
+          },
+          "SendTaskHeartbeat": {
+            "Type": "Task",
+            "Arguments": {
+              "TaskToken": "{% $taskToken %}"
+            },
+            "Resource": "arn:aws:states:::aws-sdk:sfn:sendTaskHeartbeat",
+            "End": true,
+            "Retry": [
+              {
+                "ErrorEquals": [],
+                "BackoffRate": 2,
+                "IntervalSeconds": 1,
+                "MaxAttempts": 3
+              }
+            ],
+            "Catch": [
+              {
+                "ErrorEquals": [],
+                "Next": "Fallback state"
+              }
+            ]
+          },
+          "Fallback state": {
+            "Type": "Pass",
+            "End": true
+          },
+          "SendTaskSuccess": {
+            "Type": "Task",
+            "Arguments": {
+              "Output": {},
+              "TaskToken": "MyData"
+            },
+            "Resource": "arn:aws:states:::aws-sdk:sfn:sendTaskSuccess",
+            "End": true,
+            "Catch": [
+              {
+                "ErrorEquals": ["States.ALL"],
+                "Next": "Fallback state"
+              }
+            ]
+          },
+          "SendTaskFailure": {
+            "Type": "Task",
+            "Arguments": {
+              "TaskToken": "{% $taskToken %}"
+            },
+            "Resource": "arn:aws:states:::aws-sdk:sfn:sendTaskFailure",
+            "End": true,
+            "Retry": [
+              {
+                "ErrorEquals": [],
+                "BackoffRate": 2,
+                "IntervalSeconds": 1,
+                "MaxAttempts": 3
+              }
+            ],
+            "Catch": [
+              {
+                "ErrorEquals": ["States.ALL"],
+                "Next": "Fallback state"
+              }
+            ]
+          }
+        }
+      },
+      "Label": "Foreachjobidinthetable",
+      "MaxConcurrency": 5,
+      "Items": "{% $states.input.jobIdAndTokenList %}",
+      "End": true
+    }
+  },
+  "QueryLanguage": "JSONata"
+}
