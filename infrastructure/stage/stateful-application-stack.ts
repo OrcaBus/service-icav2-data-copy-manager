@@ -68,10 +68,15 @@ export class StatefulApplicationStack extends cdk.Stack {
       eventBusObj: internalEventBusObject,
       icaQueueName: DEFAULT_ICA_SQS_NAME,
       icaQueueVizTimeout: DEFAULT_ICA_QUEUE_VIZ_TIMEOUT,
-      slackTopicArn: '',
+      slackTopicArn: this.getTopicArnFromTopicName(props.slackTopicName),
       dlqMessageThreshold: DEFAULT_DLQ_ALARM_THRESHOLD,
       icaAwsAccountNumber: DEFAULT_ICA_AWS_ACCOUNT_NUMBER,
     });
+  }
+
+  // Get the topic ARN from the topic name
+  private getTopicArnFromTopicName(topicName: string): string {
+    return `arn:aws:sns:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:${topicName}`;
   }
 
   // Create the INPUT SQS queue that will receive the ICA events

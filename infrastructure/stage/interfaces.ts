@@ -1,12 +1,12 @@
 import * as cdk from 'aws-cdk-lib';
 import { Duration, RemovalPolicy } from 'aws-cdk-lib';
 import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
-import { IEventBus, IRule, Rule } from 'aws-cdk-lib/aws-events';
+import { IEventBus, Rule } from 'aws-cdk-lib/aws-events';
 import { PythonFunction } from '@aws-cdk/aws-lambda-python-alpha';
 
 import { ITableV2 } from 'aws-cdk-lib/aws-dynamodb';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
-import { IStateMachine, StateMachine } from 'aws-cdk-lib/aws-stepfunctions';
+import { StateMachine } from 'aws-cdk-lib/aws-stepfunctions';
 
 /** Application Interfaces **/
 
@@ -18,6 +18,9 @@ export interface StatefulApplicationStackConfig extends cdk.StackProps {
   /* Event stuff */
   internalEventBusName: string;
   internalEventBusDescription: string;
+
+  /* Notification stuff */
+  slackTopicName: string;
 }
 
 export interface StatelessApplicationStackConfig extends cdk.StackProps {
@@ -121,6 +124,58 @@ export interface LambdaObject extends Omit<BuildLambdaProps, 'icav2AccessTokenSe
   lambdaFunction: PythonFunction;
 }
 
+/* Event Bridge interfaces */
+export type EventBridgeNameList =
+  /* Listen to copy jobs on the internal event bus */
+  | 'listenInternalCopyJobRule'
+  /* Save the job and internal task token */
+  | 'listenInternalTaskTokenRule'
+  /* Listen to copy jobs on the external event bus */
+  | 'listenExternalCopyJobRule'
+  /* Listen to ICAv2 events from the event pipe */
+  | 'listenICAv2CopyJobEventPipeRule'
+  /* Schedule rule to send heartbeats */
+  | 'heartBeatScheduleRule';
+
+export const eventBridgeNameList: Array<EventBridgeNameList> = [
+  'listenInternalCopyJobRule',
+  'listenInternalTaskTokenRule',
+  'listenExternalCopyJobRule',
+  'listenICAv2CopyJobEventPipeRule',
+  'heartBeatScheduleRule',
+];
+
+export interface EventBridgeRuleProps {
+  ruleName: EventBridgeNameList;
+  eventBus: IEventBus;
+}
+
+export interface InternalEventBridgeRuleProps extends EventBridgeRuleProps {
+  eventDetailType: string;
+  eventSource: string;
+}
+
+export interface ExternalEventBridgeRuleProps extends EventBridgeRuleProps {
+  eventDetailType: string;
+}
+
+export interface HeartBeatEventBridgeRuleProps extends Omit<EventBridgeRuleProps, 'eventBus'> {
+  scheduleDuration?: Duration;
+}
+
+export interface EventBridgeRulesProps {
+  internalEventBus: IEventBus;
+  externalEventBus: IEventBus;
+  eventSource: string;
+  eventDetailType: string;
+}
+
+export interface EventBridgeRuleObject {
+  ruleName: EventBridgeNameList;
+  ruleObject: Rule;
+}
+
+/* Step Function interfaces */
 export type SfnNameList =
   | 'handleCopyJobs'
   | 'saveJobAndInternalTaskToken'
@@ -167,6 +222,9 @@ export interface SfnRequirementsProps {
 
   /* Event Bridge Stuff */
   needsHeartBeatRuleObj?: boolean;
+
+  /* Needs task token update permissions */
+  needsTaskTokenUpdatePermissions?: boolean;
 }
 
 export const SfnRequirementsMapType: { [key in SfnNameList]: SfnRequirementsProps } = {
@@ -179,6 +237,9 @@ export const SfnRequirementsMapType: { [key in SfnNameList]: SfnRequirementsProp
     needsInternalEventBus: true,
     needsIcav2CopyServiceEventSource: true,
     needsIcav2CopyServiceDetailType: true,
+
+    /* Task Token permissions */
+    needsTaskTokenUpdatePermissions: true,
   },
   // Save job and internal task token
   saveJobAndInternalTaskToken: {
@@ -192,6 +253,9 @@ export const SfnRequirementsMapType: { [key in SfnNameList]: SfnRequirementsProp
   sendInternalTaskToken: {
     /* Table stuff */
     needsTableObj: true,
+
+    /* Task token permissions */
+    needsTaskTokenUpdatePermissions: true,
   },
   // Send heartbeat
   sendHeartbeat: {
@@ -200,8 +264,13 @@ export const SfnRequirementsMapType: { [key in SfnNameList]: SfnRequirementsProp
 
     /* Event Stuff */
     needsHeartBeatRuleObj: true,
+
+    /* Needs task token update permissions */
+    needsTaskTokenUpdatePermissions: true,
   },
 };
+
+export type heartBeatRuleNameList = Extract<EventBridgeNameList, 'heartBeatScheduleRule'>;
 
 export interface BuildSfnProps extends SfnProps {
   /* Lambdas */
@@ -216,7 +285,7 @@ export interface BuildSfnProps extends SfnProps {
   tableObj?: ITableV2;
 
   /* Event Bridge Stuff */
-  heartBeatRuleObj?: IRule;
+  heartBeatRuleName?: heartBeatRuleNameList;
 }
 
 export interface BuildSfnsProps {
@@ -232,66 +301,15 @@ export interface BuildSfnsProps {
   tableObj?: ITableV2;
 
   /* Event Bridge Stuff */
-  heartBeatRuleObj?: IRule;
+  heartBeatRuleName?: heartBeatRuleNameList;
 }
 
 export interface WirePermissionsProps extends BuildSfnProps {
   stateMachineObj: StateMachine;
 }
 
-/* Event Bridge interfaces */
-export type EventBridgeNameList =
-  /* Listen to copy jobs on the internal event bus */
-  | 'listenInternalCopyJobRule'
-  /* Save the job and internal task token */
-  | 'listenInternalTaskTokenRule'
-  /* Listen to copy jobs on the external event bus */
-  | 'listenExternalCopyJobRule'
-  /* Listen to ICAv2 events from the event pipe */
-  | 'listenICAv2CopyJobEventPipeRule'
-  /* Schedule rule to send heartbeats */
-  | 'heartBeatScheduleRule';
-
-export const eventBridgeNameList: Array<EventBridgeNameList> = [
-  'listenInternalCopyJobRule',
-  'listenInternalTaskTokenRule',
-  'listenExternalCopyJobRule',
-  'listenICAv2CopyJobEventPipeRule',
-  'heartBeatScheduleRule',
-];
-
-export interface EventBridgeRuleProps {
-  ruleName: EventBridgeNameList;
-  eventBus: IEventBus;
-}
-
-export interface InternalEventBridgeRuleProps extends EventBridgeRuleProps {
-  eventDetailType: string;
-  eventSource: string;
-}
-
-export interface ExternalEventBridgeRuleProps extends EventBridgeRuleProps {
-  eventDetailType: string;
-}
-
-export interface HeartBeatEventBridgeRuleProps extends EventBridgeRuleProps {
-  scheduleDuration?: Duration;
-}
-
-export interface EventBridgeRulesProps {
-  internalEventBus: IEventBus;
-  externalEventBus: IEventBus;
-  eventSource: string;
-  eventDetailType: string;
-}
-
-export interface EventBridgeRuleObject {
-  ruleName: EventBridgeNameList;
-  ruleObject: Rule;
-}
-
 export interface AddSfnAsEventBridgeTargetProps {
-  stateMachineObj: IStateMachine;
+  stateMachineObj: StateMachine;
   eventBridgeRuleObj: Rule;
 }
 

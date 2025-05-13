@@ -10,7 +10,7 @@
       "Resource": "arn:aws:states:::aws-sdk:dynamodb:scan",
       "Next": "Is Empty Table",
       "Output": {
-        "jobIdAndTokenList": "{%  %}"
+        "jobIdAndTokenList": "{% /* https://try.jsonata.org/TdROrguFo */\n[\n    $map(\n        [\n            $filter(\n                $states.result.Items,\n                function($itemIter){\n                    $itemIter.id_type.S = \"JOB_ID\"\n                }\n            )\n        ],\n        function($itemIter){\n            {\n                \"jobId\": $itemIter.id.S,\n                \"taskToken\": $itemIter.task_token\n            }\n        }\n    )\n] %}"
       }
     },
     "Is Empty Table": {
@@ -18,7 +18,7 @@
       "Choices": [
         {
           "Next": "Disable Heartbeat rule",
-          "Condition": "{% $count($states.input.jobIdAndTokenList) == 0 %}"
+          "Condition": "{% $count($states.input.jobIdAndTokenList) = 0 %}"
         }
       ],
       "Default": "For each job id in the table"
@@ -77,7 +77,7 @@
             "Next": "Send heart beat if still running",
             "Catch": [
               {
-                "ErrorEquals": ["States.Timeout", "States.ALL"],
+                "ErrorEquals": ["States.ALL"],
                 "Next": "SendTaskHeartbeat",
                 "Comment": "Send the heartbeat anyway"
               }
@@ -88,11 +88,11 @@
             "Choices": [
               {
                 "Next": "SendTaskHeartbeat",
-                "Condition": "{% $states.input.status == 'RUNNING' %}"
+                "Condition": "{% $states.input.status = 'RUNNING' %}"
               },
               {
                 "Next": "SendTaskFailure",
-                "Condition": "{% $states.input.status == 'FAILED' %}"
+                "Condition": "{% $states.input.status = 'FAILED' %}"
               }
             ],
             "Default": "SendTaskSuccess"
@@ -104,17 +104,9 @@
             },
             "Resource": "arn:aws:states:::aws-sdk:sfn:sendTaskHeartbeat",
             "End": true,
-            "Retry": [
-              {
-                "ErrorEquals": [],
-                "BackoffRate": 2,
-                "IntervalSeconds": 1,
-                "MaxAttempts": 3
-              }
-            ],
             "Catch": [
               {
-                "ErrorEquals": [],
+                "ErrorEquals": ["States.ALL"],
                 "Next": "Fallback state"
               }
             ]
@@ -130,13 +122,29 @@
               "TaskToken": "MyData"
             },
             "Resource": "arn:aws:states:::aws-sdk:sfn:sendTaskSuccess",
-            "End": true,
             "Catch": [
               {
                 "ErrorEquals": ["States.ALL"],
                 "Next": "Fallback state"
               }
-            ]
+            ],
+            "Next": "Delete Item from Table"
+          },
+          "Delete Item from Table": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::dynamodb:deleteItem",
+            "Arguments": {
+              "TableName": "${__table_name__}",
+              "Key": {
+                "id": {
+                  "S": "{% $jobId %}"
+                },
+                "id_type": {
+                  "S": "JOB_ID"
+                }
+              }
+            },
+            "End": true
           },
           "SendTaskFailure": {
             "Type": "Task",
@@ -144,21 +152,13 @@
               "TaskToken": "{% $taskToken %}"
             },
             "Resource": "arn:aws:states:::aws-sdk:sfn:sendTaskFailure",
-            "End": true,
-            "Retry": [
-              {
-                "ErrorEquals": [],
-                "BackoffRate": 2,
-                "IntervalSeconds": 1,
-                "MaxAttempts": 3
-              }
-            ],
             "Catch": [
               {
                 "ErrorEquals": ["States.ALL"],
                 "Next": "Fallback state"
               }
-            ]
+            ],
+            "Next": "Delete Item from Table"
           }
         }
       },

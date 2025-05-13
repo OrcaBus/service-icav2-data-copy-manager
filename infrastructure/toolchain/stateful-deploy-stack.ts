@@ -9,11 +9,11 @@ export class StatefulDeployStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    new DeploymentStackPipeline(this, 'IDCMStatefulDeploymentPipeline', {
+    new DeploymentStackPipeline(this, 'Icav2DataCopyManagerStatefulDeploymentPipeline', {
       githubBranch: 'main',
       githubRepo: REPO_NAME,
       stack: StatefulApplicationStack,
-      stackName: 'IDCMStatefulDeployStack',
+      stackName: 'Icav2DataCopyManagerStatefulDeployStack',
       stackConfig: {
         beta: getStatefulStackProps('BETA'),
         gamma: getStatefulStackProps('GAMMA'),

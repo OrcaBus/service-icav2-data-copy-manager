@@ -22,6 +22,9 @@ export const getStatefulStackProps = (stage: StageName): StatefulApplicationStac
     /* Event Bus stuff */
     internalEventBusName: EVENT_BUS_NAME_INTERNAL,
     internalEventBusDescription: INTERNAL_EVENT_BUS_DESCRIPTION,
+
+    /* Slack topic stuff */
+    slackTopicName: 'AwsChatBotTopic',
   };
 };
 

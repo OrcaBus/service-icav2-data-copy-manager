@@ -99,9 +99,7 @@ export class StatelessApplicationStack extends cdk.Stack {
       icav2CopyServiceEventSource: props.eventSource,
       icav2CopyServiceDetailType: props.eventDetailType,
       tableObj: dynamodbTable,
-      heartBeatRuleObj: eventBridgeRuleObjects.find(
-        (eventBridgeRule) => eventBridgeRule.ruleName === 'heartBeatScheduleRule'
-      )?.ruleObject,
+      heartBeatRuleName: 'heartBeatScheduleRule',
     });
 
     // Add the event-bridge rules
@@ -166,7 +164,6 @@ export class StatelessApplicationStack extends cdk.Stack {
     return new events.Rule(this, props.ruleName, {
       ruleName: props.ruleName,
       schedule: events.Schedule.rate(props.scheduleDuration ?? DEFAULT_HEART_BEAT_INTERVAL),
-      eventBus: props.eventBus,
     });
   }
 
@@ -276,7 +273,6 @@ export class StatelessApplicationStack extends cdk.Stack {
             ruleName: eventBridgeName,
             ruleObject: this.buildHeartBeatEventBridgeRule({
               ruleName: eventBridgeName,
-              eventBus: props.externalEventBus,
             }),
           });
           break;
@@ -311,9 +307,8 @@ export class StatelessApplicationStack extends cdk.Stack {
     }
 
     /* Substitute the event bridge rule name in the state machine definition */
-    if (props.heartBeatRuleObj) {
-      definitionSubstitutions['__heartbeat_event_bridge_rule_name__'] =
-        props.heartBeatRuleObj.ruleName;
+    if (props.heartBeatRuleName) {
+      definitionSubstitutions['__heartbeat_event_bridge_rule_name__'] = props.heartBeatRuleName;
     }
 
     /* Substitute the event detail type in the state machine definition */
@@ -369,7 +364,7 @@ export class StatelessApplicationStack extends cdk.Stack {
     /* Wire up event bridge rule permissions */
     if (sfnRequirements.needsHeartBeatRuleObj) {
       /* Ensure that the heartbeat rule object is defined */
-      if (!props.heartBeatRuleObj) {
+      if (!props.heartBeatRuleName) {
         throw new Error(
           `Heartbeat rule object is not defined for state machine that requires it: ${props.stateMachineName}`
         );
@@ -378,10 +373,24 @@ export class StatelessApplicationStack extends cdk.Stack {
         new iam.PolicyStatement({
           actions: ['events:EnableRule', 'events:DisableRule'],
           resources: [
-            `arn:aws:events:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:rule/${props.internalEventBus}/${props.heartBeatRuleObj.ruleName}`,
+            `arn:aws:events:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:rule/${props.internalEventBus}/${props.heartBeatRuleName}`,
           ],
         })
       );
+    }
+
+    /* Wire up IAM permissions manually for task token */
+    if (sfnRequirements.needsTaskTokenUpdatePermissions) {
+      // Allow step function to perform SendTaskSuccess, SendTaskFailure and SendTaskHeartbeat
+      // To any step function
+      props.stateMachineObj.addToRolePolicy(
+        new iam.PolicyStatement({
+          resources: [`arn:aws:states:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:stateMachine:*`],
+          actions: ['states:SendTaskSuccess', 'states:SendTaskFailure', 'states:SendTaskHeartbeat'],
+        })
+      );
+
+      // Will need cdk nag suppressions for this
     }
   }
 
