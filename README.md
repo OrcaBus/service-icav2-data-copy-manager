@@ -36,7 +36,7 @@ The event object will contain the following information:
 
 ### Event Bus / Events Targets Overview
 
-:construction:
+![event-bus-overview](docs/draw.io/icav2-data-copy-manager.drawio.svg)
 
 #### Step Functions Diagrams
 
