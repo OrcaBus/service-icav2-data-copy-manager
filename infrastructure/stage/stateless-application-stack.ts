@@ -46,6 +46,7 @@ import {
   LAMBDA_DIR,
   STEP_FUNCTIONS_DIR,
 } from './constants';
+import { NagSuppressions } from 'cdk-nag';
 
 export type StatelessApplicationStackProps = StatelessApplicationStackConfig & cdk.StackProps;
 
@@ -138,6 +139,18 @@ export class StatelessApplicationStack extends cdk.Stack {
       timeout: Duration.seconds(60),
       memorySize: 2048,
     });
+
+    // CDK Nag suppression (L1)
+    NagSuppressions.addResourceSuppressions(
+      lambdaFunction,
+      [
+        {
+          id: 'AwsSolutions-L1',
+          reason: 'Will migrate to PYTHON_3_13 ASAP, soz',
+        },
+      ],
+      true
+    );
 
     /* Check if this lambda needs access to the icav2 access token */
     if (lambdaToRequirementsMap[props.lambdaName].needsIcav2AccessToken) {
