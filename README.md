@@ -34,6 +34,10 @@ The event object will contain the following information:
 }
 ```
 
+### Event Bus / Events Targets Overview
+
+:construction:
+
 #### Step Functions Diagrams
 
 ##### Copy Job Handler
@@ -47,7 +51,7 @@ The state machine execution hangs at the 'Wait Job Completion' task until it is 
 
 If there are any subfolders in the sourceUriList, the service will send a new event to the event bus for each subfolder, that will in-turn trigger this step function.
 
-![copy-job-handler-sfn](docs/images/handle-copy-job.png)
+![copy-job-handler-sfn](docs/images/handle_copy_jobs_sfn_diagram.svg)
 
 ##### Save Internal Task Token
 
@@ -55,7 +59,7 @@ This step function is called by the 'Wait Job Completion' task in the 'handle-co
 
 This will save the task token along with the ICAv2 Copy Job ID into the DynamoDb table.
 
-![save-internal-task-token-sfn](docs/images/save-internal-task-token.png)
+![save-internal-task-token-sfn](docs/images/save_job_and_internal_task_token_sfn_diagram.svg)
 
 ##### Send Internal Task Token
 
@@ -67,7 +71,7 @@ This will send the task token to the copy job handler, unlocking the step functi
 
 If the copy job has failed for any reason, the task token will be sent to the 'send-internal-task-token' step function with a failure message.
 
-![send-internal-task-token](docs/images/send-internal-task-token.png)
+![send-internal-task-token](docs/images/send_internal_task_token_sfn_diagram.svg)
 
 
 ##### HeartBeat Monitor
@@ -78,7 +82,7 @@ The service can place a heartbeat requirement on their put event, which expects 
 
 If there are any running jobs in the database, the service will check the status of the job every 5 minutes and send through a heartbeat event to the event bus.
 
-![send-heartbeat-event](docs/images/send-heartbeats.png)
+![send-heartbeat-event](docs/images/send_heartbeats_sfn_diagram.svg)
 
 
 #### Recursive Copy
