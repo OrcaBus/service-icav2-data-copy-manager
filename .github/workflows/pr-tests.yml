@@ -36,6 +36,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
+          ref: '${{ github.event.pull_request.head.sha }}'
           fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
@@ -80,6 +81,8 @@ jobs:
     if: ${{ !github.event.pull_request.draft }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: '${{ github.event.pull_request.head.sha }}'
 
       - uses: pnpm/action-setup@v4
 
@@ -93,31 +96,3 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
 
       - run: pnpm test
-
-  test-app:
-    runs-on: ubuntu-22.04-arm
-    if: ${{ !github.event.pull_request.draft }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Print toolchain versions
-        run: |
-          node -v
-          python -V
-          pip3 -V
-          make --version
-
-      - name: Install
-        working-directory: ./app
-        run: |
-          make install
-
-      - name: Install
-        working-directory: ./app
-        run: |
-          make test

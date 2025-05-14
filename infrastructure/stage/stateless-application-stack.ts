@@ -109,6 +109,14 @@ export class StatelessApplicationStack extends cdk.Stack {
       eventBridgeRuleObjects: eventBridgeRuleObjects,
       stepFunctionObjects: stepFunctionObjects,
     });
+
+    // Add in stack suppressions
+    NagSuppressions.addStackSuppressions(this, [
+      {
+        id: 'AwsSolutions-IAM4',
+        reason: 'We need to add this for the lambdas to work',
+      },
+    ]);
   }
 
   /* Lambda stuff */
@@ -141,7 +149,8 @@ export class StatelessApplicationStack extends cdk.Stack {
       memorySize: 2048,
     });
 
-    // CDK Nag suppression (L1)
+    // AwsSolutions-L1 - We'll migrate to PYTHON_3_13 ASAP, soz
+    // AwsSolutions-IAM4 - We need to add this for the lambda to work
     NagSuppressions.addResourceSuppressions(
       lambdaFunction,
       [
@@ -409,6 +418,17 @@ export class StatelessApplicationStack extends cdk.Stack {
       );
 
       // Will need cdk nag suppressions for this
+      // Because we are using a wildcard for an IAM Resource policy
+      NagSuppressions.addResourceSuppressions(
+        props.stateMachineObj,
+        [
+          {
+            id: 'AwsSolutions-IAM5',
+            reason: 'Need ability to send task success/failure/heartbeat to any state machine',
+          },
+        ],
+        true
+      );
     }
 
     /* Add in distributed map policy */
@@ -442,6 +462,16 @@ export class StatelessApplicationStack extends cdk.Stack {
       props.stateMachineObj.role.attachInlinePolicy(distributedMapPolicy);
 
       // Will need a cdk nag suppression for this
+      NagSuppressions.addResourceSuppressions(
+        [props.stateMachineObj, distributedMapPolicy],
+        [
+          {
+            id: 'AwsSolutions-IAM5',
+            reason: 'Distributed Map IAM Policy requires asterisk in the resource ARN',
+          },
+        ],
+        true
+      );
     }
   }
 
@@ -462,6 +492,24 @@ export class StatelessApplicationStack extends cdk.Stack {
       stateMachineObj: stateMachine,
       ...props,
     });
+
+    /* Nag Suppressions */
+    /* AwsSolutions-SF1 - We don't need ALL events to be logged */
+    /* AwsSolutions-SF2 - We also don't need X-Ray tracing */
+    NagSuppressions.addResourceSuppressions(
+      stateMachine,
+      [
+        {
+          id: 'AwsSolutions-SF1',
+          reason: 'We do not need all events to be logged',
+        },
+        {
+          id: 'AwsSolutions-SF2',
+          reason: 'We do not need X-Ray tracing',
+        },
+      ],
+      true
+    );
 
     /* Return as a state machine object */
     return {
