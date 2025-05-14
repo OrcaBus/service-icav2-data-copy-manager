@@ -1,11 +1,11 @@
 import { StageName } from '@orcabus/platform-cdk-constructs/utils';
 import {
+  DEFAULT_EVENT_PIPE_NAME,
   EVENT_BUS_NAME_EXTERNAL,
   EVENT_BUS_NAME_INTERNAL,
   EVENT_DETAIL_TYPE_EXTERNAL,
   EVENT_SOURCE,
-  ICA_EVENT_PIPE_STACK_NAME,
-  icav2AccessTokenSecretId,
+  ICAV2_ACCESS_TOKEN_SECRET_ID,
   INTERNAL_EVENT_BUS_DESCRIPTION,
   TABLE_NAME,
   TABLE_REMOVAL_POLICY,
@@ -22,6 +22,9 @@ export const getStatefulStackProps = (stage: StageName): StatefulApplicationStac
     /* Event Bus stuff */
     internalEventBusName: EVENT_BUS_NAME_INTERNAL,
     internalEventBusDescription: INTERNAL_EVENT_BUS_DESCRIPTION,
+
+    /* Slack topic stuff */
+    slackTopicName: 'AwsChatBotTopic',
   };
 };
 
@@ -31,13 +34,13 @@ export const getStatelessStackProps = (stage: StageName): StatelessApplicationSt
     tableName: TABLE_NAME,
 
     /* Secrets */
-    icav2AccessTokenSecretId: icav2AccessTokenSecretId[stage],
+    icav2AccessTokenSecretId: ICAV2_ACCESS_TOKEN_SECRET_ID[stage],
 
     /* Event stuff */
     internalEventBusName: EVENT_BUS_NAME_INTERNAL,
     externalEventBusName: EVENT_BUS_NAME_EXTERNAL,
     eventDetailType: EVENT_DETAIL_TYPE_EXTERNAL,
     eventSource: EVENT_SOURCE,
-    icaEventPipeName: ICA_EVENT_PIPE_STACK_NAME,
+    icaEventPipeName: DEFAULT_EVENT_PIPE_NAME,
   };
 };

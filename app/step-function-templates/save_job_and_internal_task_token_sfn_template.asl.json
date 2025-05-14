@@ -36,7 +36,7 @@
             "Enable HeartBeat Rule": {
               "Type": "Task",
               "Arguments": {
-                "Name": "${__heartbeat_event_rule_name__}"
+                "Name": "${__heartbeat_event_bridge_rule_name__}"
               },
               "Resource": "arn:aws:states:::aws-sdk:eventbridge:enableRule",
               "End": true

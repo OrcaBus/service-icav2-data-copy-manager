@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "isUri": {
+      "pattern": "^(icav2|s3)://[a-zA-Z0-9_-]*/[a-zA-Z0-9_/-]*"
+    }
+  },
+  "description": "icav2-data-copy-sync Exteranl Event",
+  "type": "object",
+  "properties": {
+    "EventBusName": {
+      "type": "string",
+      "enum": ["OrcaBusMain"],
+      "minLength": 1
+    },
+    "Source": {
+      "type": "string",
+      "minLength": 1
+    },
+    "DetailType": {
+      "type": "string",
+      "minLength": 1,
+      "enum": ["ICAv2DataCopySync"]
+    },
+    "Detail": {
+      "type": "object",
+      "properties": {
+        "payload": {
+          "type": "object",
+          "properties": {
+            "sourceUriList": {
+              "type": "array",
+              "contains": {
+                "type": "string",
+                "minumum": 1
+              },
+              "items": {
+                "type": "string",
+                "allOf": [{ "$ref": "#/$defs/isUri" }]
+              }
+            },
+            "destinationUri": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["sourceUriList", "destinationUri"]
+        },
+        "taskToken": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["payload", "taskToken"]
+    }
+  },
+  "required": ["EventBusName", "Source", "DetailType", "Detail"]
+}

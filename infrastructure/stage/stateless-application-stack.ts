@@ -41,11 +41,13 @@ import {
 import path from 'path';
 import { Duration } from 'aws-cdk-lib';
 import {
+  DEFAULT_HEART_BEAT_EVENT_BRIDGE_RULE_NAME,
   DEFAULT_HEART_BEAT_INTERVAL,
   ICA_COPY_JOB_EVENT_CODE,
   LAMBDA_DIR,
   STEP_FUNCTIONS_DIR,
 } from './constants';
+import { NagSuppressions } from 'cdk-nag';
 
 export type StatelessApplicationStackProps = StatelessApplicationStackConfig & cdk.StackProps;
 
@@ -99,9 +101,7 @@ export class StatelessApplicationStack extends cdk.Stack {
       icav2CopyServiceEventSource: props.eventSource,
       icav2CopyServiceDetailType: props.eventDetailType,
       tableObj: dynamodbTable,
-      heartBeatRuleObj: eventBridgeRuleObjects.find(
-        (eventBridgeRule) => eventBridgeRule.ruleName === 'heartBeatScheduleRule'
-      )?.ruleObject,
+      heartBeatRuleName: DEFAULT_HEART_BEAT_EVENT_BRIDGE_RULE_NAME,
     });
 
     // Add the event-bridge rules
@@ -141,6 +141,18 @@ export class StatelessApplicationStack extends cdk.Stack {
       memorySize: 2048,
     });
 
+    // CDK Nag suppression (L1)
+    NagSuppressions.addResourceSuppressions(
+      lambdaFunction,
+      [
+        {
+          id: 'AwsSolutions-L1',
+          reason: 'Will migrate to PYTHON_3_13 ASAP, soz',
+        },
+      ],
+      true
+    );
+
     /* Check if this lambda needs access to the icav2 access token */
     if (lambdaToRequirementsMap[props.lambdaName].needsIcav2AccessToken) {
       /* Add the ICAv2 access token secret ARN to the environment variables */
@@ -166,7 +178,6 @@ export class StatelessApplicationStack extends cdk.Stack {
     return new events.Rule(this, props.ruleName, {
       ruleName: props.ruleName,
       schedule: events.Schedule.rate(props.scheduleDuration ?? DEFAULT_HEART_BEAT_INTERVAL),
-      eventBus: props.eventBus,
     });
   }
 
@@ -177,7 +188,10 @@ export class StatelessApplicationStack extends cdk.Stack {
         source: [props.eventSource],
         detailType: [props.eventDetailType],
         detail: {
-          payload: [{ exists: true }],
+          payload: {
+            destinationUri: [{ exists: true }],
+            sourceUriList: [{ exists: true }],
+          },
         },
       },
       eventBus: props.eventBus,
@@ -191,7 +205,7 @@ export class StatelessApplicationStack extends cdk.Stack {
         source: [props.eventSource],
         detailType: [props.eventDetailType],
         detail: {
-          payload: [{ exists: false }],
+          jobId: [{ exists: true }],
         },
       },
       eventBus: props.eventBus,
@@ -219,6 +233,7 @@ export class StatelessApplicationStack extends cdk.Stack {
           },
         },
       },
+      eventBus: props.eventBus,
     });
   }
 
@@ -276,7 +291,6 @@ export class StatelessApplicationStack extends cdk.Stack {
             ruleName: eventBridgeName,
             ruleObject: this.buildHeartBeatEventBridgeRule({
               ruleName: eventBridgeName,
-              eventBus: props.externalEventBus,
             }),
           });
           break;
@@ -302,7 +316,7 @@ export class StatelessApplicationStack extends cdk.Stack {
 
     /* Substitute the event bus in the state machine definition */
     if (props.internalEventBus) {
-      definitionSubstitutions['__internal_event_bus_name__'] = props.internalEventBus.eventBusArn;
+      definitionSubstitutions['__internal_event_bus_name__'] = props.internalEventBus.eventBusName;
     }
 
     /* Substitute the dynamodb table in the state machine definition */
@@ -311,9 +325,8 @@ export class StatelessApplicationStack extends cdk.Stack {
     }
 
     /* Substitute the event bridge rule name in the state machine definition */
-    if (props.heartBeatRuleObj) {
-      definitionSubstitutions['__heartbeat_event_bridge_rule_name__'] =
-        props.heartBeatRuleObj.ruleName;
+    if (props.heartBeatRuleName) {
+      definitionSubstitutions['__heartbeat_event_bridge_rule_name__'] = props.heartBeatRuleName;
     }
 
     /* Substitute the event detail type in the state machine definition */
@@ -369,7 +382,7 @@ export class StatelessApplicationStack extends cdk.Stack {
     /* Wire up event bridge rule permissions */
     if (sfnRequirements.needsHeartBeatRuleObj) {
       /* Ensure that the heartbeat rule object is defined */
-      if (!props.heartBeatRuleObj) {
+      if (!props.heartBeatRuleName) {
         throw new Error(
           `Heartbeat rule object is not defined for state machine that requires it: ${props.stateMachineName}`
         );
@@ -378,10 +391,57 @@ export class StatelessApplicationStack extends cdk.Stack {
         new iam.PolicyStatement({
           actions: ['events:EnableRule', 'events:DisableRule'],
           resources: [
-            `arn:aws:events:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:rule/${props.internalEventBus}/${props.heartBeatRuleObj.ruleName}`,
+            `arn:aws:events:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:rule/${props.heartBeatRuleName}`,
           ],
         })
       );
+    }
+
+    /* Wire up IAM permissions manually for task token */
+    if (sfnRequirements.needsTaskTokenUpdatePermissions) {
+      // Allow step function to perform SendTaskSuccess, SendTaskFailure and SendTaskHeartbeat
+      // To any step function
+      props.stateMachineObj.addToRolePolicy(
+        new iam.PolicyStatement({
+          resources: [`arn:aws:states:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:stateMachine:*`],
+          actions: ['states:SendTaskSuccess', 'states:SendTaskFailure', 'states:SendTaskHeartbeat'],
+        })
+      );
+
+      // Will need cdk nag suppressions for this
+    }
+
+    /* Add in distributed map policy */
+    if (sfnRequirements.needsDistributedMapPolicies) {
+      // Requirement for distributed maps to work
+      /* State machine runs a distributed map */
+      // Because this steps execution uses a distributed map running an express step function, we
+      // have to wire up some extra permissions
+      // Grant the state machine's role to execute itself
+      // However we cannot just grant permission to the role as this will result in a circular dependency
+      // between the state machine and the role
+      // Instead we use the workaround here - https://github.com/aws/aws-cdk/issues/28820#issuecomment-1936010520
+      const distributedMapPolicy = new iam.Policy(this, `${props.stateMachineName}-dist-map-role`, {
+        document: new iam.PolicyDocument({
+          statements: [
+            new iam.PolicyStatement({
+              resources: [props.stateMachineObj.stateMachineArn],
+              actions: ['states:StartExecution'],
+            }),
+            new iam.PolicyStatement({
+              resources: [
+                `arn:aws:states:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:execution:${props.stateMachineObj.stateMachineName}/*:*`,
+              ],
+              actions: ['states:RedriveExecution'],
+            }),
+          ],
+        }),
+      });
+
+      // Add the policy to the state machine role
+      props.stateMachineObj.role.attachInlinePolicy(distributedMapPolicy);
+
+      // Will need a cdk nag suppression for this
     }
   }
 

@@ -9,11 +9,11 @@ export class StatelessDeployStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    new DeploymentStackPipeline(this, 'IDCMStatelessDeploymentPipeline', {
+    new DeploymentStackPipeline(this, 'Icav2DataCopyManagerStatelessDeploymentPipeline', {
       githubBranch: 'main',
       githubRepo: REPO_NAME,
       stack: StatelessApplicationStack,
-      stackName: 'IDCMStatelessDeployStack',
+      stackName: 'Icav2DataCopyManagerStatelessDeployStack',
       stackConfig: {
         beta: getStatelessStackProps('BETA'),
         gamma: getStatelessStackProps('GAMMA'),
