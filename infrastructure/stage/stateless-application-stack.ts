@@ -109,6 +109,14 @@ export class StatelessApplicationStack extends cdk.Stack {
       eventBridgeRuleObjects: eventBridgeRuleObjects,
       stepFunctionObjects: stepFunctionObjects,
     });
+
+    // Add in stack suppressions
+    NagSuppressions.addStackSuppressions(this, [
+      {
+        id: 'AwsSolutions-IAM4',
+        reason: 'We need to add this for the lambdas to work',
+      },
+    ]);
   }
 
   /* Lambda stuff */
@@ -149,10 +157,6 @@ export class StatelessApplicationStack extends cdk.Stack {
         {
           id: 'AwsSolutions-L1',
           reason: 'Will migrate to PYTHON_3_13 ASAP, soz',
-        },
-        {
-          id: 'AWSSolutions-IAM4',
-          reason: 'We need to add this for the lambda to work',
         },
       ],
       true
@@ -415,12 +419,16 @@ export class StatelessApplicationStack extends cdk.Stack {
 
       // Will need cdk nag suppressions for this
       // Because we are using a wildcard for an IAM Resource policy
-      NagSuppressions.addResourceSuppressions(props.stateMachineObj, [
-        {
-          id: 'AwsSolutions-IAM5',
-          reason: 'Need ability to send task success/failure/heartbeat to any state machine',
-        },
-      ]);
+      NagSuppressions.addResourceSuppressions(
+        props.stateMachineObj,
+        [
+          {
+            id: 'AwsSolutions-IAM5',
+            reason: 'Need ability to send task success/failure/heartbeat to any state machine',
+          },
+        ],
+        true
+      );
     }
 
     /* Add in distributed map policy */
