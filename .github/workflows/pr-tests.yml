@@ -36,7 +36,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: '${{ github.head_ref || github.ref }}'
+          ref: '${{ github.event.pull_request.head.sha }}'
           fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
@@ -82,7 +82,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: '${{ github.head_ref || github.ref }}'
+          ref: '${{ github.event.pull_request.head.sha }}'
 
       - uses: pnpm/action-setup@v4
 
@@ -104,7 +104,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: '${{ github.head_ref || github.ref }}'
+          ref: '${{ github.event.pull_request.head.sha }}'
 
       - uses: actions/setup-python@v5
         with:
