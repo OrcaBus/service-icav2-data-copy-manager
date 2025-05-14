@@ -116,6 +116,7 @@ jobs:
           python -V
           pip3 -V
           make --version
+          ls
 
       - name: Install
         working-directory: ./app
