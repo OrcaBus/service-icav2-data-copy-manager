@@ -225,6 +225,9 @@ export interface SfnRequirementsProps {
 
   /* Needs task token update permissions */
   needsTaskTokenUpdatePermissions?: boolean;
+
+  /* Check if step function needs distributed map policies */
+  needsDistributedMapPolicies?: boolean;
 }
 
 export const SfnRequirementsMapType: { [key in SfnNameList]: SfnRequirementsProps } = {
@@ -262,11 +265,17 @@ export const SfnRequirementsMapType: { [key in SfnNameList]: SfnRequirementsProp
     /* Lambda name list */
     requiredLambdaNameList: SendHeartbeatJobsLambdaList,
 
+    /* Table stuff */
+    needsTableObj: true,
+
     /* Event Stuff */
     needsHeartBeatRuleObj: true,
 
     /* Needs task token update permissions */
     needsTaskTokenUpdatePermissions: true,
+
+    /* Needs distributed map policies */
+    needsDistributedMapPolicies: true,
   },
 };
 

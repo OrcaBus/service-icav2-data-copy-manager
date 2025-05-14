@@ -10,7 +10,7 @@
       "Resource": "arn:aws:states:::aws-sdk:dynamodb:scan",
       "Next": "Is Empty Table",
       "Output": {
-        "jobIdAndTokenList": "{% /* https://try.jsonata.org/TdROrguFo */\n[\n    $map(\n        [\n            $filter(\n                $states.result.Items,\n                function($itemIter){\n                    $itemIter.id_type.S = \"JOB_ID\"\n                }\n            )\n        ],\n        function($itemIter){\n            {\n                \"jobId\": $itemIter.id.S,\n                \"taskToken\": $itemIter.task_token\n            }\n        }\n    )\n] %}"
+        "jobIdAndTokenList": "{% /* https://try.jsonata.org/TbqLpZbBE */\n[\n    $map(\n        [\n            $filter(\n                $states.result.Items,\n                function($itemIter){\n                    $itemIter.id_type.S = \"JOB_ID\"\n                }\n            )\n        ],\n        function($itemIter){\n            {\n                \"jobId\": $itemIter.id.S,\n                \"taskToken\": $itemIter.task_token.S\n            }\n        }\n    )\n] %}"
       }
     },
     "Is Empty Table": {
@@ -55,7 +55,7 @@
               "status": "{% $states.result.Payload.status %}"
             },
             "Arguments": {
-              "FunctionName": "${__check_job_is_running_lambda_function_arn__}",
+              "FunctionName": "${__check_job_status_lambda_function_arn__}",
               "Payload": {
                 "jobId": "{% $jobId %}"
               }
@@ -119,10 +119,14 @@
             "Type": "Task",
             "Arguments": {
               "Output": {},
-              "TaskToken": "MyData"
+              "TaskToken": "{% $taskToken %}"
             },
             "Resource": "arn:aws:states:::aws-sdk:sfn:sendTaskSuccess",
             "Catch": [
+              {
+                "ErrorEquals": ["Sfn.InvalidTokenException"],
+                "Next": "Delete Item from Table"
+              },
               {
                 "ErrorEquals": ["States.ALL"],
                 "Next": "Fallback state"
@@ -153,6 +157,10 @@
             },
             "Resource": "arn:aws:states:::aws-sdk:sfn:sendTaskFailure",
             "Catch": [
+              {
+                "ErrorEquals": ["Sfn.InvalidTokenException"],
+                "Next": "Delete Item from Table"
+              },
               {
                 "ErrorEquals": ["States.ALL"],
                 "Next": "Fallback state"

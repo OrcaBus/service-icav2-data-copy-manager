@@ -34,6 +34,10 @@ An event object will contain the following information:
 }
 ```
 
+You can view the event schema under [event-schemas/icav2-data-copy-sync.json](event-schemas/icav2-data-copy-sync.json).
+and validate your event with the [JSON Schema Validator](https://www.jsonschemavalidator.net/s/14XzDnBn) tool.
+
+
 This service will recursively copy all files and folders from the source to the destination.
 For each subfolder, it will generate its own copy event and send it to the event bus, which is picked up by itself.
 
@@ -51,6 +55,30 @@ This service uses a DynamoDb table to link AWS Task Tokens to ICAv2 Copy Job IDs
 - bssh-to-aws-s3-copy service :construction:
 - data-sharing-service :construction:
 - cttsov2-workflow-manager :construction:
+
+
+## Example External Event
+
+An example event can be found under the `examples/external-event.json`
+
+You can manually launch this event with the following command:
+
+```sh
+export AWS_PROFILE='umccr-development'
+
+aws events put-events \
+  --no-cli-pager \
+  --cli-input-json "$( \
+    jq --raw-output \
+      '
+        {
+          "Entries": [
+            (.Detail = (.Detail | tojson))
+          ]
+        }
+      ' < "external-event.json" \
+)"
+```
 
 
 ## Event Bus / Events Targets Overview
@@ -106,6 +134,9 @@ If there are any running jobs in the database, the service will check the status
 
 ## Infrastructure Dependencies
 
+> See also: [Project Notification Section Setup](#project-notification-setup) Below
+
+
 ### Event Bus
 
 An existing event bus for other microservices to publish events to. This event bus is used to trigger the data copy process.
@@ -115,6 +146,8 @@ This stack also builds its own Event bus for internal events.
 ### Token
 
 An available and existing ICAv2 JWT token (with rotation enabled) in AWS secrets manager with access to the source and target ICAv2 projects.
+
+
 
 
 ## Project Directory Structure
@@ -238,3 +271,43 @@ To automatically fix issues with ESLint and Prettier, run:
 ```sh
 make fix
 ```
+
+
+## Project Notification Setup
+
+In order to for this service to work on an ICAv2 or BSSH Managed ICAv2 Project,
+one must perform the following steps when setting up the project.
+
+This can all also be done after the project has been created.
+
+### Adding the service user to the project team
+
+In order for the UMCCR team to write data to this ICAv2 project,
+one will need to add our production service user to the project.
+
+If the user is not in your tenant, they will need to be added by the ‘User by email’ option.
+
+The service user will need the following permissions:
+•	Upload allowed
+•	Contributor access to the Project level
+  * I have tried with Viewer and this is unsuccessful
+    as it does not allow folder creation via the ICA API)
+
+![project-team-display](docs/ica-ui-screenshot-exports/project-team-display.png)
+
+![add-team-member-display](docs/ica-ui-screenshot-exports/add-team-member-display.png)
+
+### Adding the notifications channel
+
+In order for our event-based orchestration engine to know
+that all data has been successfully transferred, we require the following notification setup.
+
+In the notifications channel,
+create a new subscription for ‘Job Status Changed’ (Event code ICA_JOB_001),
+with the following SQS address: https://sqs.ap-southeast-2.amazonaws.com/472057503814/IcaEventPipeStackQueue
+  * (472057503814 is our AWS Production Account ID)
+  * Icav2CopyJobEventPipe is the name of the SQS queue defined in the application constants
+
+![notifications-page-display](docs/ica-ui-screenshot-exports/notifications-page-display.png)
+
+![add-sqs-notification-display](docs/ica-ui-screenshot-exports/add-sqs-notification-display.png)

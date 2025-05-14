@@ -41,6 +41,7 @@ import {
 import path from 'path';
 import { Duration } from 'aws-cdk-lib';
 import {
+  DEFAULT_HEART_BEAT_EVENT_BRIDGE_RULE_NAME,
   DEFAULT_HEART_BEAT_INTERVAL,
   ICA_COPY_JOB_EVENT_CODE,
   LAMBDA_DIR,
@@ -100,7 +101,7 @@ export class StatelessApplicationStack extends cdk.Stack {
       icav2CopyServiceEventSource: props.eventSource,
       icav2CopyServiceDetailType: props.eventDetailType,
       tableObj: dynamodbTable,
-      heartBeatRuleName: 'heartBeatScheduleRule',
+      heartBeatRuleName: DEFAULT_HEART_BEAT_EVENT_BRIDGE_RULE_NAME,
     });
 
     // Add the event-bridge rules
@@ -187,7 +188,10 @@ export class StatelessApplicationStack extends cdk.Stack {
         source: [props.eventSource],
         detailType: [props.eventDetailType],
         detail: {
-          payload: [{ exists: true }],
+          payload: {
+            destinationUri: [{ exists: true }],
+            sourceUriList: [{ exists: true }],
+          },
         },
       },
       eventBus: props.eventBus,
@@ -201,7 +205,7 @@ export class StatelessApplicationStack extends cdk.Stack {
         source: [props.eventSource],
         detailType: [props.eventDetailType],
         detail: {
-          payload: [{ exists: false }],
+          jobId: [{ exists: true }],
         },
       },
       eventBus: props.eventBus,
@@ -229,6 +233,7 @@ export class StatelessApplicationStack extends cdk.Stack {
           },
         },
       },
+      eventBus: props.eventBus,
     });
   }
 
@@ -311,7 +316,7 @@ export class StatelessApplicationStack extends cdk.Stack {
 
     /* Substitute the event bus in the state machine definition */
     if (props.internalEventBus) {
-      definitionSubstitutions['__internal_event_bus_name__'] = props.internalEventBus.eventBusArn;
+      definitionSubstitutions['__internal_event_bus_name__'] = props.internalEventBus.eventBusName;
     }
 
     /* Substitute the dynamodb table in the state machine definition */
@@ -386,7 +391,7 @@ export class StatelessApplicationStack extends cdk.Stack {
         new iam.PolicyStatement({
           actions: ['events:EnableRule', 'events:DisableRule'],
           resources: [
-            `arn:aws:events:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:rule/${props.internalEventBus}/${props.heartBeatRuleName}`,
+            `arn:aws:events:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:rule/${props.heartBeatRuleName}`,
           ],
         })
       );
@@ -404,6 +409,39 @@ export class StatelessApplicationStack extends cdk.Stack {
       );
 
       // Will need cdk nag suppressions for this
+    }
+
+    /* Add in distributed map policy */
+    if (sfnRequirements.needsDistributedMapPolicies) {
+      // Requirement for distributed maps to work
+      /* State machine runs a distributed map */
+      // Because this steps execution uses a distributed map running an express step function, we
+      // have to wire up some extra permissions
+      // Grant the state machine's role to execute itself
+      // However we cannot just grant permission to the role as this will result in a circular dependency
+      // between the state machine and the role
+      // Instead we use the workaround here - https://github.com/aws/aws-cdk/issues/28820#issuecomment-1936010520
+      const distributedMapPolicy = new iam.Policy(this, `${props.stateMachineName}-dist-map-role`, {
+        document: new iam.PolicyDocument({
+          statements: [
+            new iam.PolicyStatement({
+              resources: [props.stateMachineObj.stateMachineArn],
+              actions: ['states:StartExecution'],
+            }),
+            new iam.PolicyStatement({
+              resources: [
+                `arn:aws:states:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:execution:${props.stateMachineObj.stateMachineName}/*:*`,
+              ],
+              actions: ['states:RedriveExecution'],
+            }),
+          ],
+        }),
+      });
+
+      // Add the policy to the state machine role
+      props.stateMachineObj.role.attachInlinePolicy(distributedMapPolicy);
+
+      // Will need a cdk nag suppression for this
     }
   }
 

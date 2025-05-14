@@ -1,0 +1,14 @@
+{
+  "EventBusName": "OrcaBusMain",
+  "Source": "manual",
+  "DetailType": "ICAv2DataCopySync",
+  "Detail": {
+    "payload": {
+      "sourceUriList": [
+        "s3://pipeline-dev-cache-503977275616-ap-southeast-2/byob-icav2/development/test_data/ora-testing/"
+      ],
+      "destinationUri": "s3://pipeline-dev-cache-503977275616-ap-southeast-2/byob-icav2/development/test_data_copy/"
+    },
+    "taskToken": "your-step-function-task-token"
+  }
+}

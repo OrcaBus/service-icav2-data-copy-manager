@@ -7,8 +7,8 @@
       "Type": "Pass",
       "Next": "Generate copy job list",
       "Assign": {
-        "sourceUriList": "{% $states.input.sourceUriList %}",
-        "destinationUri": "{% $states.input.destinationUri %}",
+        "sourceUriList": "{% $states.input.payload.sourceUriList %}",
+        "destinationUri": "{% $states.input.payload.destinationUri %}",
         "taskToken": "{% $states.input.taskToken ? $states.input.taskToken : null %}"
       }
     },
@@ -16,7 +16,7 @@
       "Type": "Task",
       "Resource": "arn:aws:states:::lambda:invoke",
       "Arguments": {
-        "FunctionName": "${__generate_copy_jobs_lambda_function_arn__}",
+        "FunctionName": "${__generate_copy_job_list_lambda_function_arn__}",
         "Payload": {
           "sourceUriList": "{% $sourceUriList %}",
           "destinationUri": "{% $destinationUri %}"
@@ -54,7 +54,7 @@
               "Type": "Task",
               "Resource": "arn:aws:states:::lambda:invoke",
               "Arguments": {
-                "FunctionName": "${__find_files_with_single_multipart_uploads_lambda_function_arn__}",
+                "FunctionName": "${__find_single_part_files_lambda_function_arn__}",
                 "Payload": {
                   "dataList": "{% $sourceDataList %}"
                 }
@@ -99,7 +99,7 @@
                             "Resource": "arn:aws:states:::lambda:invoke",
                             "Output": "{% $states.result.Payload %}",
                             "Arguments": {
-                              "FunctionName": "${__upload_single_file_lambda_function_arn__}",
+                              "FunctionName": "${__upload_single_part_file_lambda_function_arn__}",
                               "Payload": {
                                 "sourceData": "{% $states.input.sourceDataIter %}",
                                 "destinationData": "{% $states.input.destinationDataIter %}"
@@ -156,7 +156,7 @@
                       "Type": "Task",
                       "Resource": "arn:aws:states:::lambda:invoke",
                       "Arguments": {
-                        "FunctionName": "${__launch_copy_job_lambda_function_arn__}",
+                        "FunctionName": "${__launch_icav2_copy_lambda_function_arn__}",
                         "Payload": {
                           "sourceDataList": "{% $multiPartDataList %}",
                           "destinationData": "{% $destinationData %}"
@@ -191,7 +191,7 @@
                               "jobId": "{% $jobId %}",
                               "taskToken": "{% $states.context.Task.Token %}"
                             },
-                            "DetailType": "${__icav2_copy_job_detail_type__}",
+                            "DetailType": "${__event_detail_type__}",
                             "EventBusName": "${__internal_event_bus_name__}",
                             "Source": "${__event_source__}"
                           }
@@ -206,7 +206,8 @@
                           "Next": "Failed with retryCounter > 3"
                         }
                       ],
-                      "End": true
+                      "End": true,
+                      "HeartbeatSeconds": 300
                     },
                     "Failed with retryCounter > 3": {
                       "Type": "Choice",
@@ -261,11 +262,13 @@
                       "Entries": [
                         {
                           "Detail": {
-                            "sourceUriList": "{% $states.input.sourceUriListIter %}",
-                            "destinationUri": "{% $states.input.destinationUriIter %}",
+                            "payload": {
+                              "sourceUriList": "{% $states.input.sourceUriListIter %}",
+                              "destinationUri": "{% $states.input.destinationUriIter %}"
+                            },
                             "taskToken": "{% $states.context.Task.Token %}"
                           },
-                          "DetailType": "${__icav2_copy_job_detail_type__}",
+                          "DetailType": "${__event_detail_type__}",
                           "EventBusName": "${__internal_event_bus_name__}",
                           "Source": "${__event_source__}"
                         }
