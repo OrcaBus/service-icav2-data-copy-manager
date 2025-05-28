@@ -145,7 +145,7 @@ export class StatelessApplicationStack extends cdk.Stack {
       architecture: lambda.Architecture.ARM_64,
       index: lambdaNameToSnakeCase + '.py',
       handler: 'handler',
-      timeout: Duration.seconds(60),
+      timeout: Duration.seconds(300),
       memorySize: 2048,
     });
 
