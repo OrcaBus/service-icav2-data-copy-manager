@@ -14,13 +14,16 @@ import { buildAllLambdas } from './lambda';
 import { buildEventBridgeRules } from './event-rules';
 import { buildAllStepFunctions } from './step-functions';
 import { buildAllEventBridgeTargets } from './event-targets';
+import { StageName } from '@orcabus/platform-cdk-constructs/shared-config/accounts';
 
 export type StatelessApplicationStackProps = StatelessApplicationStackConfig & cdk.StackProps;
 
 // Stateless Application Stack
 export class StatelessApplicationStack extends cdk.Stack {
+  public readonly stageName: StageName;
   constructor(scope: Construct, id: string, props: StatelessApplicationStackProps) {
     super(scope, id, props);
+    this.stageName = props.stageName;
 
     // Get dynamodb table (built in the stateful stack)
     const dynamodbTable = dynamodb.TableV2.fromTableName(this, props.tableName, props.tableName);

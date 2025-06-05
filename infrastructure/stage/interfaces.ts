@@ -1,5 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
 import { RemovalPolicy } from 'aws-cdk-lib';
+import { StageName } from '@orcabus/platform-cdk-constructs/shared-config/accounts';
 
 /** Application Interfaces **/
 
@@ -17,6 +18,8 @@ export interface StatefulApplicationStackConfig extends cdk.StackProps {
 }
 
 export interface StatelessApplicationStackConfig extends cdk.StackProps {
+  /* Stage Name */
+  stageName: StageName;
   /* Dynamodb table name */
   tableName: string;
 

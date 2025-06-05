@@ -1,7 +1,7 @@
 /* Imports */
-import { StageName } from '@orcabus/platform-cdk-constructs/utils';
 import { Duration, RemovalPolicy } from 'aws-cdk-lib';
 import * as path from 'node:path';
+import { StageName } from '@orcabus/platform-cdk-constructs/shared-config/accounts';
 
 /* Directory constants */
 export const APP_ROOT = path.join(__dirname, '../../app');
