@@ -13,11 +13,11 @@ if (!deployMode) {
 }
 
 if (deployMode === 'stateless') {
-  new StatelessDeployStack(app, 'OrcaBusStatelessServiceStack', {
+  new StatelessDeployStack(app, 'OrcaBusStatelessIcav2DataCopyServiceStack', {
     env: TOOLCHAIN_ENVIRONMENT,
   });
 } else if (deployMode === 'stateful') {
-  new StatefulDeployStack(app, 'OrcaBusStatefulServiceStack', {
+  new StatefulDeployStack(app, 'OrcaBusStatefulIcav2DataCopyServiceStack', {
     env: TOOLCHAIN_ENVIRONMENT,
   });
 } else {

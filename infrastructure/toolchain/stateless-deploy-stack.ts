@@ -13,13 +13,13 @@ export class StatelessDeployStack extends cdk.Stack {
       githubBranch: 'main',
       githubRepo: REPO_NAME,
       stack: StatelessApplicationStack,
-      stackName: 'Icav2DataCopyManagerStatelessDeployStack',
+      stackName: 'OrcaBusStatelessIcav2DataCopyServiceStack',
       stackConfig: {
         beta: getStatelessStackProps('BETA'),
         gamma: getStatelessStackProps('GAMMA'),
         prod: getStatelessStackProps('PROD'),
       },
-      pipelineName: 'OrcaBus-StatelessMicroservice',
+      pipelineName: 'OrcaBus-Icav2DataCopyManagerStatelessPipeline',
       cdkSynthCmd: ['pnpm install --frozen-lockfile --ignore-scripts', 'pnpm cdk synth'],
     });
   }
