@@ -20,7 +20,7 @@ export class StatelessDeployStack extends cdk.Stack {
         prod: getStatelessStackProps('PROD'),
       },
       pipelineName: 'OrcaBus-Icav2DataCopyManagerStatelessPipeline',
-      cdkSynthCmd: ['pnpm install --frozen-lockfile --ignore-scripts', 'pnpm cdk synth'],
+      cdkSynthCmd: ['pnpm install --frozen-lockfile --ignore-scripts', 'pnpm cdk-stateless synth'],
     });
   }
 }
