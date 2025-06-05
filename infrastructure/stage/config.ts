@@ -1,4 +1,3 @@
-import { StageName } from '@orcabus/platform-cdk-constructs/utils';
 import {
   DEFAULT_EVENT_PIPE_NAME,
   EVENT_BUS_NAME_EXTERNAL,
@@ -11,6 +10,7 @@ import {
   TABLE_REMOVAL_POLICY,
 } from './constants';
 import { StatefulApplicationStackConfig, StatelessApplicationStackConfig } from './interfaces';
+import { StageName } from '@orcabus/platform-cdk-constructs/shared-config/accounts';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const getStatefulStackProps = (stage: StageName): StatefulApplicationStackConfig => {
@@ -30,6 +30,8 @@ export const getStatefulStackProps = (stage: StageName): StatefulApplicationStac
 
 export const getStatelessStackProps = (stage: StageName): StatelessApplicationStackConfig => {
   return {
+    /* Stage name */
+    stageName: stage,
     /* Table name */
     tableName: TABLE_NAME,
 
