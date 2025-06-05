@@ -15,7 +15,6 @@ import {
 import { createEventBridgePipe, getTopicArnFromTopicName } from './sqs';
 import { buildTable } from './dynamodb';
 import { buildEventBus } from './event-bus';
-import { StageName } from '@orcabus/platform-cdk-constructs/shared-config/accounts';
 
 export type StatefulApplicationStackProps = StatefulApplicationStackConfig & cdk.StackProps;
 
