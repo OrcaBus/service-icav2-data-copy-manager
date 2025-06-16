@@ -10,7 +10,7 @@ function synthesisMessageToString(sm: SynthesisMessage): string {
   return `${sm.entry.data} [${sm.id}]`;
 }
 
-describe('cdk-nag-stateful-toolchain-stack', () => {
+describe('cdk-nag-stateful-stage-stack', () => {
   const app = new App({});
 
   // You should configure all stack (sateless, stateful) to be tested
@@ -36,7 +36,7 @@ describe('cdk-nag-stateful-toolchain-stack', () => {
   });
 });
 
-describe('cdk-nag-stateless-toolchain-stack', () => {
+describe('cdk-nag-stateless-stage-stack', () => {
   const app = new App({});
 
   // You should configure all stack (sateless, stateful) to be tested
