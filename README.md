@@ -304,7 +304,7 @@ that all data has been successfully transferred, we require the following notifi
 
 In the notifications channel,
 create a new subscription for ‘Job Status Changed’ (Event code ICA_JOB_001),
-with the following SQS address: https://sqs.ap-southeast-2.amazonaws.com/472057503814/IcaEventPipeStackQueue
+with the following SQS address: https://sqs.ap-southeast-2.amazonaws.com/472057503814/Icav2CopyJobEventPipe
   * (472057503814 is our AWS Production Account ID)
   * Icav2CopyJobEventPipe is the name of the SQS queue defined in the application constants
 
