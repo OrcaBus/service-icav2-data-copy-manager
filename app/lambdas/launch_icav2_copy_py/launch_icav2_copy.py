@@ -28,7 +28,6 @@ The event input is
 
 # Standard imports
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 from typing import List, Dict
 import boto3
 from os import environ
@@ -38,13 +37,10 @@ import re
 
 # Wrapica imports
 from wrapica.libica_models import ProjectData
-from wrapica.enums import ProjectDataStatusValues, DataType
 from wrapica.project_data import (
     convert_uri_to_project_data_obj, project_data_copy_batch_handler,
     delete_project_data,
     list_project_data_non_recursively,
-    write_icav2_file_contents, read_icav2_file_contents,
-    get_project_data_obj_from_project_id_and_path,
     get_project_data_obj_by_id
 )
 
@@ -129,21 +125,38 @@ def submit_copy_job(dest_project_data_obj: ProjectData, source_project_data_objs
     ).id
 
 
-def delete_existing_partial_data(dest_project_data_obj: ProjectData):
-    # Check list of files in the dest project data object and make sure no file has a partial status
-    existing_files = list_project_data_non_recursively(
-        dest_project_data_obj.project_id,
-        dest_project_data_obj.data.id
-    )
+def delete_existing_partial_data(
+        dest_project_data_obj: ProjectData,
+        source_project_data_obj_list: List[ProjectData] = None
+):
+    # Source data names
+    source_data_names = list(map(
+        lambda source_project_data_obj_iter_: source_project_data_obj_iter_.data.details.name,
+        source_project_data_obj_list
+    ))
 
-    for existing_file in existing_files:
+    # Check list of files in the dest project data object and make sure no file has a partial status
+    existing_partial_files = list(filter(
+        lambda file_iter_: (
+            # File has a partial status AND
+            file_iter_.data.details.status == 'PARTIAL' and
+            # File name is in the list of files we
+            # want to copy over
+            file_iter_.data.details.name in source_data_names
+        ),
+        list_project_data_non_recursively(
+            dest_project_data_obj.project_id,
+            dest_project_data_obj.data.id
+        )
+    ))
+
+    for existing_file in existing_partial_files:
+        logger.info(f"Deleting file {existing_file.data.details.path}, with 'partial' status before rerunning job")
         # Delete files with a 'partial' status
-        if ProjectDataStatusValues(existing_file.data.details.status) == ProjectDataStatusValues.PARTIAL:
-            logger.info(f"Deleting file {existing_file.data.details.path}, with 'partial' status before rerunning job")
-            delete_project_data(
-                existing_file.project_id,
-                existing_file.data.id
-            )
+        delete_project_data(
+            existing_file.project_id,
+            existing_file.data.id
+        )
 
 
 def get_source_uris_as_project_data_objs(source_uris: List[str]) -> List[ProjectData]:
@@ -178,10 +191,6 @@ def handler(event, context):
         data_id=destination_data.get("dataId")
     )
 
-    # First time through
-    logger.info("Delete any existing partial data before running job")
-    delete_existing_partial_data(dest_project_data_obj)
-
     # Get Source Uris as project data objects
     # Filter out files smaller than the min file size limit
     # These are transferred over manually
@@ -192,6 +201,13 @@ def handler(event, context):
         ),
         source_data_list
     ))
+
+    # First time through
+    logger.info("Delete any existing partial data before running job")
+    delete_existing_partial_data(
+        dest_project_data_obj,
+        source_project_data_list
+    )
 
     # Check we have a job to run
     return {
