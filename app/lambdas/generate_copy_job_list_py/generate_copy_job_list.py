@@ -25,18 +25,17 @@ Due to AWS S3 Object tagging bugs, it's important each folder is part of its own
 
 # Standard imports
 from typing import List, Dict, Union
-import typing
 from pathlib import Path
 import logging
-import boto3
-from os import environ
+
+# Layer imports
+from icav2_tools import set_icav2_env_vars
 
 # Wrapica imports
 from wrapica.project_data import (
     coerce_data_id_or_uri_to_project_data_obj,
-    ProjectData, list_project_data_non_recursively, create_folder_in_project
+    ProjectData, list_project_data_non_recursively
 )
-
 from wrapica.enums import DataType
 
 # Set logging
@@ -44,56 +43,6 @@ logging.basicConfig()
 logger = logging.getLogger()
 logger.setLevel(level=logging.INFO)
 
-# Globals
-ICAV2_BASE_URL = "https://ica.illumina.com/ica/rest"
-
-# Type hints
-if typing.TYPE_CHECKING:
-    from mypy_boto3_ssm import SSMClient
-    from mypy_boto3_secretsmanager import SecretsManagerClient
-
-
-# AWS things
-def get_ssm_client() -> 'SSMClient':
-    """
-    Return SSM client
-    """
-    return boto3.client("ssm")
-
-
-def get_secrets_manager_client() -> 'SecretsManagerClient':
-    """
-    Return Secrets Manager client
-    """
-    return boto3.client("secretsmanager")
-
-
-def get_ssm_parameter_value(parameter_path) -> str:
-    """
-    Get the ssm parameter value from the parameter path
-    :param parameter_path:
-    :return:
-    """
-    return get_ssm_client().get_parameter(Name=parameter_path)["Parameter"]["Value"]
-
-
-def get_secret(secret_arn: str) -> str:
-    """
-    Return secret value
-    """
-    return get_secrets_manager_client().get_secret_value(SecretId=secret_arn)["SecretString"]
-
-
-# Set the icav2 environment variables
-def set_icav2_env_vars():
-    """
-    Set the icav2 environment variables
-    :return:
-    """
-    environ["ICAV2_BASE_URL"] = ICAV2_BASE_URL
-    environ["ICAV2_ACCESS_TOKEN"] = get_secret(
-        environ["ICAV2_ACCESS_TOKEN_SECRET_ID"]
-    )
 
 
 def get_files_and_folders_in_project_folder_non_recursively(project_data_folder: ProjectData) -> List[ProjectData]:
@@ -194,23 +143,30 @@ def handler(event, context) -> Dict[str, List[Dict[str, Union[str, List[str]]]]]
             )
             continue
 
-        # When source uri is a folder, it is a little more complicated
-        all_source_project_data_objs = get_files_and_folders_in_project_folder_non_recursively(source_project_data_obj)
-        destination_project_data_obj = create_folder_in_project(
-            project_id=parent_destination_project_data_obj.project_id,
-            folder_path=Path(
-                parent_destination_project_data_obj.data.details.path) / source_project_data_obj.data.details.name,
-        )
         recursive_copy_jobs_list.append(
             {
-                "destinationUri": f"icav2://{destination_project_data_obj.project_id}{destination_project_data_obj.data.details.path}",
-                "sourceUriList": list(map(
-                    lambda
-                        project_data_iter_: f"icav2://{project_data_iter_.project_id}{project_data_iter_.data.details.path}",
-                    all_source_project_data_objs
-                ))
+                "destinationUri": f"icav2://{parent_destination_project_data_obj.project_id}{Path(parent_destination_project_data_obj.data.details.path) / source_project_data_obj.data.details.name}/",
+                "sourceUri": f"icav2://{source_project_data_obj.project_id}{source_project_data_obj.data.details.path}"
             }
         )
+
+        # When source uri is a folder, it is a little more complicated
+        # all_source_project_data_objs = get_files_and_folders_in_project_folder_non_recursively(source_project_data_obj)
+        # destination_project_data_obj = create_folder_in_project(
+        #     project_id=parent_destination_project_data_obj.project_id,
+        #     folder_path=Path(
+        #         parent_destination_project_data_obj.data.details.path) / source_project_data_obj.data.details.name,
+        # )
+        # recursive_copy_jobs_list.append(
+        #     {
+        #         "destinationUri": f"icav2://{destination_project_data_obj.project_id}{destination_project_data_obj.data.details.path}",
+        #         "sourceUriList": list(map(
+        #             lambda
+        #                 project_data_iter_: f"icav2://{project_data_iter_.project_id}{project_data_iter_.data.details.path}",
+        #             all_source_project_data_objs
+        #         ))
+        #     }
+        # )
 
     return {
         "sourceDataList": source_list,

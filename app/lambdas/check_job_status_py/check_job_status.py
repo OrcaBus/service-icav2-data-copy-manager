@@ -1,12 +1,5 @@
 #!/usr/bin/env python3
 
-"""
-Check the job status of a job id
-"""
-from wrapica.job import get_job
-
-
-#!/usr/bin/env python3
 
 """
 Lambda to determine if a given ICAv2 Copy Job has finished.
@@ -35,26 +28,17 @@ The event input is
 """
 
 # Standard imports
-from pathlib import Path
-from tempfile import NamedTemporaryFile
-from typing import List, Dict
 import boto3
 from os import environ
 import typing
 import logging
 import re
 
+# Layer imports
+from icav2_tools import set_icav2_env_vars
+
 # Wrapica imports
-from wrapica.libica_models import ProjectData
-from wrapica.enums import ProjectDataStatusValues, DataType
-from wrapica.project_data import (
-    convert_uri_to_project_data_obj, project_data_copy_batch_handler,
-    delete_project_data,
-    list_project_data_non_recursively,
-    write_icav2_file_contents, read_icav2_file_contents,
-    get_project_data_obj_from_project_id_and_path,
-    get_project_data_obj_by_id
-)
+from wrapica.job import get_job
 
 if typing.TYPE_CHECKING:
     from mypy_boto3_ssm import SSMClient
@@ -74,51 +58,6 @@ MAX_JOB_ATTEMPT_COUNTER = 10
 DEFAULT_WAIT_TIME_SECONDS = 10
 DEFAULT_WAIT_TIME_SECONDS_EXT = 10
 
-# Globals
-ICAV2_BASE_URL = "https://ica.illumina.com/ica/rest"
-
-
-# AWS things
-def get_ssm_client() -> 'SSMClient':
-    """
-    Return SSM client
-    """
-    return boto3.client("ssm")
-
-
-def get_secrets_manager_client() -> 'SecretsManagerClient':
-    """
-    Return Secrets Manager client
-    """
-    return boto3.client("secretsmanager")
-
-
-def get_ssm_parameter_value(parameter_path) -> str:
-    """
-    Get the ssm parameter value from the parameter path
-    :param parameter_path:
-    :return:
-    """
-    return get_ssm_client().get_parameter(Name=parameter_path)["Parameter"]["Value"]
-
-
-def get_secret(secret_arn: str) -> str:
-    """
-    Return secret value
-    """
-    return get_secrets_manager_client().get_secret_value(SecretId=secret_arn)["SecretString"]
-
-
-# Set the icav2 environment variables
-def set_icav2_env_vars():
-    """
-    Set the icav2 environment variables
-    :return:
-    """
-    environ["ICAV2_BASE_URL"] = ICAV2_BASE_URL
-    environ["ICAV2_ACCESS_TOKEN"] = get_secret(
-        environ["ICAV2_ACCESS_TOKEN_SECRET_ID"]
-    )
 
 def summarise_job_status(job_status: str) -> str:
     if job_status in ['INITIALIZED', 'WAITING_FOR_RESOURCES', 'RUNNING']:

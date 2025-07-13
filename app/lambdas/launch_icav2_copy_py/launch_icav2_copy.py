@@ -35,6 +35,9 @@ import typing
 import logging
 import re
 
+# Layer imports
+from icav2_tools import set_icav2_env_vars
+
 # Wrapica imports
 from wrapica.libica_models import ProjectData
 from wrapica.project_data import (
@@ -61,52 +64,6 @@ MULTI_PART_ETAG_REGEX = re.compile(r"\w+-\d+")
 MAX_JOB_ATTEMPT_COUNTER = 10
 DEFAULT_WAIT_TIME_SECONDS = 10
 DEFAULT_WAIT_TIME_SECONDS_EXT = 10
-
-# Globals
-ICAV2_BASE_URL = "https://ica.illumina.com/ica/rest"
-
-
-# AWS things
-def get_ssm_client() -> 'SSMClient':
-    """
-    Return SSM client
-    """
-    return boto3.client("ssm")
-
-
-def get_secrets_manager_client() -> 'SecretsManagerClient':
-    """
-    Return Secrets Manager client
-    """
-    return boto3.client("secretsmanager")
-
-
-def get_ssm_parameter_value(parameter_path) -> str:
-    """
-    Get the ssm parameter value from the parameter path
-    :param parameter_path:
-    :return:
-    """
-    return get_ssm_client().get_parameter(Name=parameter_path)["Parameter"]["Value"]
-
-
-def get_secret(secret_arn: str) -> str:
-    """
-    Return secret value
-    """
-    return get_secrets_manager_client().get_secret_value(SecretId=secret_arn)["SecretString"]
-
-
-# Set the icav2 environment variables
-def set_icav2_env_vars():
-    """
-    Set the icav2 environment variables
-    :return:
-    """
-    environ["ICAV2_BASE_URL"] = ICAV2_BASE_URL
-    environ["ICAV2_ACCESS_TOKEN"] = get_secret(
-        environ["ICAV2_ACCESS_TOKEN_SECRET_ID"]
-    )
 
 
 def submit_copy_job(dest_project_data_obj: ProjectData, source_project_data_objs: List[ProjectData]) -> str:
