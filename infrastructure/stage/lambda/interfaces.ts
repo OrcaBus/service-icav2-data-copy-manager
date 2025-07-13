@@ -3,6 +3,7 @@ import { PythonFunction } from '@aws-cdk/aws-lambda-python-alpha';
 
 export type LambdaNameList =
   | 'findSinglePartFiles'
+  | 'convertSourceUriFolderToUriList'
   | 'generateCopyJobList'
   | 'launchIcav2Copy'
   | 'uploadSinglePartFile'
@@ -12,6 +13,7 @@ export type LambdaNameList =
 /* Bit of double handling, BUT types are not parsed to JS */
 export const lambdaNameList: Array<LambdaNameList> = [
   'findSinglePartFiles',
+  'convertSourceUriFolderToUriList',
   'generateCopyJobList',
   'launchIcav2Copy',
   'uploadSinglePartFile',
@@ -27,6 +29,9 @@ export type LambdaToRequirementsMapType = { [key in LambdaNameList]: LambdaRequi
 
 export const lambdaToRequirementsMap: LambdaToRequirementsMapType = {
   findSinglePartFiles: {
+    needsIcav2AccessToken: true,
+  },
+  convertSourceUriFolderToUriList: {
     needsIcav2AccessToken: true,
   },
   generateCopyJobList: {

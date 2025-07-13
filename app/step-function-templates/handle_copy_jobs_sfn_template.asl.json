@@ -253,8 +253,37 @@
                 "ProcessorConfig": {
                   "Mode": "INLINE"
                 },
-                "StartAt": "Launch copy job sync",
+                "StartAt": "Get source uri list from source uri",
                 "States": {
+                  "Get source uri list from source uri": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:states:::lambda:invoke",
+                    "Arguments": {
+                      "FunctionName": "${__convert_source_uri_folder_to_uri_list_lambda_function_arn__}",
+                      "Payload": {
+                        "sourceUri": "{% $states.input.sourceUriIter %}"
+                      }
+                    },
+                    "Retry": [
+                      {
+                        "ErrorEquals": [
+                          "Lambda.ServiceException",
+                          "Lambda.AWSLambdaException",
+                          "Lambda.SdkClientException",
+                          "Lambda.TooManyRequestsException"
+                        ],
+                        "IntervalSeconds": 1,
+                        "MaxAttempts": 3,
+                        "BackoffRate": 2,
+                        "JitterStrategy": "FULL"
+                      }
+                    ],
+                    "Next": "Launch copy job sync",
+                    "Output": {
+                      "sourceUriListIter": "{% $states.result.Payload.sourceUriList %}",
+                      "destinationUriIter": "{% $states.input.destinationUriIter %}"
+                    }
+                  },
                   "Launch copy job sync": {
                     "Type": "Task",
                     "Resource": "arn:aws:states:::events:putEvents.waitForTaskToken",
@@ -282,7 +311,7 @@
               "Items": "{% $recursiveCopyJobsUriList %}",
               "ItemSelector": {
                 "destinationUriIter": "{% $states.context.Map.Item.Value.destinationUri %}",
-                "sourceUriListIter": "{% $states.context.Map.Item.Value.sourceUriList %}"
+                "sourceUriIter": "{% $states.context.Map.Item.Value.sourceUri %}"
               }
             }
           }

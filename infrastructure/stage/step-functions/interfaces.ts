@@ -26,6 +26,7 @@ export const HandleCopyJobsLambdaList: Array<LambdaNameList> = [
   'launchIcav2Copy',
   'uploadSinglePartFile',
   'findSinglePartFiles',
+  'convertSourceUriFolderToUriList',
 ];
 
 export const SendHeartbeatJobsLambdaList: Array<LambdaNameList> = ['checkJobStatus'];

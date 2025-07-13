@@ -44,77 +44,26 @@ We take in the following inputs:
     }
 }
 """
+
+# Standard library imports
 import json
-import typing
-from os import environ
 from pathlib import Path
 from textwrap import dedent
 import requests
+from tempfile import NamedTemporaryFile
+from subprocess import run
 
-import boto3
+# Layer imports
+from icav2_tools import set_icav2_env_vars
+
+# Wrapica imports
 from wrapica.enums import DataType
-
 from wrapica.project_data import (
     create_download_url,
     get_project_data_obj_by_id,
     get_project_data_obj_from_project_id_and_path
 )
-
-from tempfile import NamedTemporaryFile
-from subprocess import run
-
 from wrapica.utils.configuration import get_icav2_access_token
-
-if typing.TYPE_CHECKING:
-    from mypy_boto3_ssm import SSMClient
-    from mypy_boto3_secretsmanager import SecretsManagerClient
-
-
-# Globals
-ICAV2_BASE_URL = "https://ica.illumina.com/ica/rest"
-
-
-# AWS things
-def get_ssm_client() -> 'SSMClient':
-    """
-    Return SSM client
-    """
-    return boto3.client("ssm")
-
-
-def get_secrets_manager_client() -> 'SecretsManagerClient':
-    """
-    Return Secrets Manager client
-    """
-    return boto3.client("secretsmanager")
-
-
-def get_ssm_parameter_value(parameter_path) -> str:
-    """
-    Get the ssm parameter value from the parameter path
-    :param parameter_path:
-    :return:
-    """
-    return get_ssm_client().get_parameter(Name=parameter_path)["Parameter"]["Value"]
-
-
-def get_secret(secret_arn: str) -> str:
-    """
-    Return secret value
-    """
-    return get_secrets_manager_client().get_secret_value(SecretId=secret_arn)["SecretString"]
-
-
-# Set the icav2 environment variables
-def set_icav2_env_vars():
-    """
-    Set the icav2 environment variables
-    :return:
-    """
-    environ["ICAV2_BASE_URL"] = ICAV2_BASE_URL
-    environ["ICAV2_ACCESS_TOKEN"] = get_secret(
-        environ["ICAV2_ACCESS_TOKEN_SECRET_ID"]
-    )
 
 
 def get_shell_script_template() -> str:
