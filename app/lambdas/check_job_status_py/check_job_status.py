@@ -28,9 +28,6 @@ The event input is
 """
 
 # Standard imports
-import boto3
-from os import environ
-import typing
 import logging
 import re
 
@@ -39,10 +36,6 @@ from icav2_tools import set_icav2_env_vars
 
 # Wrapica imports
 from wrapica.job import get_job
-
-if typing.TYPE_CHECKING:
-    from mypy_boto3_ssm import SSMClient
-    from mypy_boto3_secretsmanager import SecretsManagerClient
 
 # Set logging
 logging.basicConfig()

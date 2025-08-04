@@ -46,10 +46,8 @@ We take in the following inputs:
 """
 
 # Standard library imports
-import json
 from pathlib import Path
 from textwrap import dedent
-import requests
 from tempfile import NamedTemporaryFile
 from subprocess import run
 
@@ -57,13 +55,13 @@ from subprocess import run
 from icav2_tools import set_icav2_env_vars
 
 # Wrapica imports
-from wrapica.enums import DataType
 from wrapica.project_data import (
     create_download_url,
     get_project_data_obj_by_id,
-    get_project_data_obj_from_project_id_and_path
+    get_project_data_obj_from_project_id_and_path,
+    create_file_with_upload_url
 )
-from wrapica.utils.configuration import get_icav2_access_token
+from wrapica.utils.globals import FILE_DATA_TYPE
 
 
 def get_shell_script_template() -> str:
@@ -105,34 +103,6 @@ def generate_shell_script(
         )
 
     return temp_file_path
-
-
-def create_file_with_upload_url(
-        project_id: str,
-        folder_id: str,
-        file_name: str,
-) -> str:
-    # Set headers
-    headers = {
-        'Accept': 'application/vnd.illumina.v3+json',
-        'Content-Type': 'application/vnd.illumina.v3+json',
-        'Authorization': f"Bearer {get_icav2_access_token()}"
-    }
-
-    data = {
-        "name": file_name,
-        "folderId": folder_id,
-    }
-
-    response = requests.post(
-        f'https://ica.illumina.com/ica/rest/api/projects/{project_id}/data:createFileWithUploadUrl',
-        headers=headers,
-        data=json.dumps(data),
-    )
-
-    response.raise_for_status()
-
-    return response.json()['uploadUrl']
 
 
 def run_shell_script(
@@ -191,7 +161,7 @@ def handler(event, context):
         _ = get_project_data_obj_from_project_id_and_path(
             project_id=destination_folder_object.project_id,
             data_path=Path(destination_folder_object.data.details.path) / source_object.data.details.name,
-            data_type=DataType.FILE
+            data_type=FILE_DATA_TYPE
         )
         return
     except FileNotFoundError:

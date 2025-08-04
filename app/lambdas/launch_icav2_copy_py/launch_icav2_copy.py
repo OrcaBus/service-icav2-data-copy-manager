@@ -29,9 +29,6 @@ The event input is
 # Standard imports
 from pathlib import Path
 from typing import List, Dict
-import boto3
-from os import environ
-import typing
 import logging
 import re
 
@@ -41,15 +38,12 @@ from icav2_tools import set_icav2_env_vars
 # Wrapica imports
 from wrapica.libica_models import ProjectData
 from wrapica.project_data import (
-    convert_uri_to_project_data_obj, project_data_copy_batch_handler,
+    convert_uri_to_project_data_obj,
+    project_data_copy_batch_handler,
     delete_project_data,
     list_project_data_non_recursively,
     get_project_data_obj_by_id
 )
-
-if typing.TYPE_CHECKING:
-    from mypy_boto3_ssm import SSMClient
-    from mypy_boto3_secretsmanager import SecretsManagerClient
 
 # Set logging
 logging.basicConfig()
