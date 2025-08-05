@@ -34,9 +34,8 @@ from icav2_tools import set_icav2_env_vars
 # Wrapica imports
 from wrapica.project_data import (
     coerce_data_id_or_uri_to_project_data_obj,
-    ProjectData, list_project_data_non_recursively
 )
-from wrapica.enums import DataType
+from wrapica.utils.globals import FILE_DATA_TYPE
 
 # Set logging
 logging.basicConfig()
@@ -74,7 +73,7 @@ def handler(event, context) -> Dict[str, List[Dict[str, Union[str, List[str]]]]]
         source_project_data_obj = coerce_data_id_or_uri_to_project_data_obj(source_uri_iter_)
 
         # Check if the source uri is a file or a folder
-        if DataType(source_project_data_obj.data.details.data_type) == DataType.FILE:
+        if source_project_data_obj.data.details.data_type == FILE_DATA_TYPE:
             # Easy, simple case
             source_list.append(
                 {
