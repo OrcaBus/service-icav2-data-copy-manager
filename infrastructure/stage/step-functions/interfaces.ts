@@ -4,6 +4,7 @@ import { LambdaNameList, LambdaObject } from '../lambda/interfaces';
 import { EventBridgeNameList } from '../event-rules/interfaces';
 import { IEventBus } from 'aws-cdk-lib/aws-events';
 import { ITableV2 } from 'aws-cdk-lib/aws-dynamodb';
+import { EcsFargateTaskConstruct } from '@orcabus/platform-cdk-constructs/ecs';
 
 export type SfnNameList =
   | 'handleCopyJobs'
@@ -24,7 +25,6 @@ export interface SfnObject extends SfnProps {
 export const HandleCopyJobsLambdaList: Array<LambdaNameList> = [
   'generateCopyJobList',
   'launchIcav2Copy',
-  'uploadSinglePartFile',
   'findSinglePartFiles',
   'convertSourceUriFolderToUriList',
 ];
@@ -46,6 +46,9 @@ export interface SfnRequirementsProps {
   needsInternalEventBus?: boolean;
   needsIcav2CopyServiceEventSource?: boolean;
   needsIcav2CopyServiceDetailType?: boolean;
+
+  /* ECS Stuff */
+  needsEcsPermissions?: boolean;
 
   /* Does the Step Function need table access bus */
   needsTableObj?: boolean;
@@ -70,6 +73,9 @@ export const SfnRequirementsMapType: { [key in SfnNameList]: SfnRequirementsProp
     needsInternalEventBus: true,
     needsIcav2CopyServiceEventSource: true,
     needsIcav2CopyServiceDetailType: true,
+
+    /* ECS Stuff */
+    needsEcsPermissions: true,
 
     /* Task Token permissions */
     needsTaskTokenUpdatePermissions: true,
@@ -120,21 +126,8 @@ export interface BuildSfnProps extends SfnProps {
   icav2CopyServiceEventSource?: string;
   icav2CopyServiceDetailType?: string;
 
-  /* Table stuff */
-  tableObj?: ITableV2;
-
-  /* Event Bridge Stuff */
-  heartBeatRuleName?: heartBeatRuleNameList;
-}
-
-export interface BuildSfnsProps {
-  /* Lambdas */
-  lambdas?: LambdaObject[];
-
-  /* Event Stuff */
-  internalEventBus?: IEventBus;
-  icav2CopyServiceEventSource?: string;
-  icav2CopyServiceDetailType?: string;
+  /* ECS Stuff */
+  uploadSinglePartFileEcsFargateObject: EcsFargateTaskConstruct;
 
   /* Table stuff */
   tableObj?: ITableV2;
@@ -142,6 +135,8 @@ export interface BuildSfnsProps {
   /* Event Bridge Stuff */
   heartBeatRuleName?: heartBeatRuleNameList;
 }
+
+export type BuildSfnsProps = Omit<BuildSfnProps, 'stateMachineName'>;
 
 export interface WirePermissionsProps extends BuildSfnProps {
   stateMachineObj: StateMachine;

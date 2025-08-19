@@ -96,30 +96,53 @@
                         "States": {
                           "Upload Single File": {
                             "Type": "Task",
-                            "Resource": "arn:aws:states:::lambda:invoke",
-                            "Output": "{% $states.result.Payload %}",
+                            "Resource": "arn:aws:states:::ecs:runTask.sync",
                             "Arguments": {
-                              "FunctionName": "${__upload_single_part_file_lambda_function_arn__}",
-                              "Payload": {
-                                "sourceData": "{% $states.input.sourceDataIter %}",
-                                "destinationData": "{% $states.input.destinationDataIter %}"
+                              "LaunchType": "FARGATE",
+                              "Cluster": "${__cluster__}",
+                              "TaskDefinition": "${__task_definition__}",
+                              "NetworkConfiguration": {
+                                "AwsvpcConfiguration": {
+                                  "Subnets": "{% $split('${__subnets__}', ',') %}",
+                                  "SecurityGroups": "{% [ '${__security_group__}' ] %}"
+                                }
+                              },
+                              "Overrides": {
+                                "ContainerOverrides": [
+                                  {
+                                    "Name": "${__container_name__}",
+                                    "Environment": [
+                                      {
+                                        "Name": "SOURCE_PROJECT_ID",
+                                        "Value": "{% $states.input.sourceDataIter.projectId %}"
+                                      },
+                                      {
+                                        "Name": "SOURCE_DATA_ID",
+                                        "Value": "{% $states.input.sourceDataIter.dataId %}"
+                                      },
+                                      {
+                                        "Name": "DEST_PROJECT_ID",
+                                        "Value": "{% $states.input.destinationDataIter.projectId %}"
+                                      },
+                                      {
+                                        "Name": "DEST_DATA_ID",
+                                        "Value": "{% $states.input.destinationDataIter.dataId %}"
+                                      }
+                                    ]
+                                  }
+                                ]
                               }
                             },
+                            "End": true,
                             "Retry": [
                               {
-                                "ErrorEquals": [
-                                  "Lambda.ServiceException",
-                                  "Lambda.AWSLambdaException",
-                                  "Lambda.SdkClientException",
-                                  "Lambda.TooManyRequestsException"
-                                ],
-                                "IntervalSeconds": 1,
-                                "MaxAttempts": 3,
+                                "ErrorEquals": ["ECS.AmazonECSException"],
                                 "BackoffRate": 2,
+                                "IntervalSeconds": 20,
+                                "MaxAttempts": 3,
                                 "JitterStrategy": "FULL"
                               }
-                            ],
-                            "End": true
+                            ]
                           }
                         }
                       },

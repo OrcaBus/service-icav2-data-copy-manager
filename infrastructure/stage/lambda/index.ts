@@ -28,7 +28,7 @@ function buildLambda(scope: Construct, props: BuildLambdaProps): LambdaObject {
     index: lambdaNameToSnakeCase + '.py',
     handler: 'handler',
     timeout: Duration.seconds(900),
-    memorySize: 2048,
+    memorySize: 2048, // 2GB
     includeIcav2Layer: lambdaRequirements.needsIcav2AccessToken,
   });
 

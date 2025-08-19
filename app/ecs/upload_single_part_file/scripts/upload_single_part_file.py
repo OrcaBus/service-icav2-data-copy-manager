@@ -50,16 +50,16 @@ from pathlib import Path
 from textwrap import dedent
 from tempfile import NamedTemporaryFile
 from subprocess import run
-
-# Layer imports
-from icav2_tools import set_icav2_env_vars
+from time import sleep
+import argparse
 
 # Wrapica imports
 from wrapica.project_data import (
     create_download_url,
     get_project_data_obj_by_id,
     get_project_data_obj_from_project_id_and_path,
-    create_file_with_upload_url
+    create_file_with_upload_url,
+    delete_project_data
 )
 from wrapica.utils.globals import FILE_DATA_TYPE
 
@@ -71,13 +71,17 @@ def get_shell_script_template() -> str:
 
         set -euo pipefail
 
-        curl --location \
-         "__DOWNLOAD_PRESIGNED_URL__" | \
-        curl --location \
+        # Download the file and upload it
+        # This actually downloads the entire file into memory before uploading it
+        curl \
+          --fail-with-body --silent --show-error --location \
+          --request GET \
+          --url "__DOWNLOAD_PRESIGNED_URL__" | \
+        curl --fail-with-body --silent --show-error --location \
           --request PUT \
           --header 'Content-Type: application/octet-stream' \
           --data-binary "@-" \
-          "__UPLOAD_PRESIGNED_URL__"
+          --url "__UPLOAD_PRESIGNED_URL__"
         """
     )
 
@@ -130,24 +134,70 @@ def run_shell_script(
     return
 
 
-def handler(event, context):
+def get_args():
+    """
+    Use argparse, to get the arguments from the command line.
+    We collect the following arguments
+    * --source-project-id
+    * --source-data-id
+    * --destination-project-id
+    * --destination-data-id
+    :return:
+    """
+    # Get args
+    args = argparse.ArgumentParser(
+        description="Upload a single part file to ICAv2 with curl PUT"
+    )
+
+    # Source args
+    args.add_argument(
+        "--source-project-id",
+        type=str,
+        required=True,
+        help="The project ID of the source file to be uploaded."
+    )
+    args.add_argument(
+        "--source-data-id",
+        type=str,
+        required=True,
+        help="The data ID of the source file to be uploaded."
+    )
+
+    # Dest args
+    args.add_argument(
+        "--dest-project-id",
+        type=str,
+        required=True,
+        help="The project ID of the dest file to be uploaded."
+    )
+    args.add_argument(
+        "--dest-data-id",
+        type=str,
+        required=True,
+        help="The data ID of the dest folder the file should be uploaded to."
+    )
+
+    return args.parse_args()
+
+
+def main():
     """
     Given the inputs of
     :param event:
     :param context:
     :return:
     """
-    set_icav2_env_vars()
+    args = get_args()
 
     # Get the source file object
     source_object = get_project_data_obj_by_id(
-        project_id=event["sourceData"]["projectId"],
-        data_id=event["sourceData"]["dataId"]
+        project_id=args.source_project_id,
+        data_id=args.source_data_id
     )
     # Get the destination folder object
     destination_folder_object = get_project_data_obj_by_id(
-        project_id=event["destinationData"]["projectId"],
-        data_id=event["destinationData"]["dataId"]
+        project_id=args.dest_project_id,
+        data_id=args.dest_data_id
     )
 
     # Create the source file download url
@@ -158,12 +208,30 @@ def handler(event, context):
 
     # Check if the destination file exists
     try:
-        _ = get_project_data_obj_from_project_id_and_path(
+        existing_project_data_obj = get_project_data_obj_from_project_id_and_path(
             project_id=destination_folder_object.project_id,
             data_path=Path(destination_folder_object.data.details.path) / source_object.data.details.name,
             data_type=FILE_DATA_TYPE
         )
-        return
+        # If we have a partial file, we can delete it and re-upload
+        if existing_project_data_obj.data.details.status == 'PARTIAL':
+            # Delete the file
+            delete_project_data(
+                project_id=destination_folder_object.project_id,
+                data_id=existing_project_data_obj.data.id
+            )
+            # Wait for the db to catch up
+            sleep(5)
+        elif existing_project_data_obj.data.details.file_size_in_bytes == source_object.data.details.file_size_in_bytes:
+            # If the file sizes match, we can skip the upload
+            # Check the file sizes match
+            return
+        else:
+            raise RuntimeError(
+                f"File {existing_project_data_obj.data.details.path} already exists in destination folder "
+                f"with a different file size. Cannot overwrite."
+            )
+
     except FileNotFoundError:
         pass
     # Create the file object
@@ -185,28 +253,5 @@ def handler(event, context):
     )
 
 
-# if __name__ == "__main__":
-#     from os import environ
-#     import json
-#
-#     environ['AWS_PROFILE'] = 'umccr-production'
-#     environ['AWS_REGION'] = 'ap-southeast-2'
-#     environ["ICAV2_ACCESS_TOKEN_SECRET_ID"] = "ICAv2JWTKey-umccr-prod-service-production"
-#
-#     print(json.dumps(
-#         handler(
-#             {
-#                 "sourceData": {
-#                     "projectId": "eba5c946-1677-441d-bbce-6a11baadecbb",
-#                     "dataId": "fil.be1b0cc74abe44c919a008dd6f300f84"
-#                 },
-#                 "destinationData": {
-#                     "projectId": "6f123cb4-cbd2-46a8-82a8-d91dcb608817",
-#                     "dataId": "fol.2379160ba4884949471008dd77d4a93c"
-#                 }
-#             },
-#             None)
-#         , indent=4
-#     ))
-#
-#     # null
+if __name__ == "__main__":
+    main()

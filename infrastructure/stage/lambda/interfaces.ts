@@ -6,7 +6,6 @@ export type LambdaNameList =
   | 'convertSourceUriFolderToUriList'
   | 'generateCopyJobList'
   | 'launchIcav2Copy'
-  | 'uploadSinglePartFile'
   | 'checkJobStatus';
 
 /* Lambda names array */
@@ -16,7 +15,6 @@ export const lambdaNameList: Array<LambdaNameList> = [
   'convertSourceUriFolderToUriList',
   'generateCopyJobList',
   'launchIcav2Copy',
-  'uploadSinglePartFile',
   'checkJobStatus',
 ];
 
@@ -38,9 +36,6 @@ export const lambdaToRequirementsMap: LambdaToRequirementsMapType = {
     needsIcav2AccessToken: true,
   },
   launchIcav2Copy: {
-    needsIcav2AccessToken: true,
-  },
-  uploadSinglePartFile: {
     needsIcav2AccessToken: true,
   },
   checkJobStatus: {

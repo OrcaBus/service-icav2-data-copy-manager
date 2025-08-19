@@ -5,6 +5,7 @@ import * as events from 'aws-cdk-lib/aws-events';
 
 // Application imports
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as secretsManager from 'aws-cdk-lib/aws-secretsmanager';
 
 // Local imports
 import { StatelessApplicationStackConfig } from './interfaces';
@@ -15,6 +16,7 @@ import { buildEventBridgeRules } from './event-rules';
 import { buildAllStepFunctions } from './step-functions';
 import { buildAllEventBridgeTargets } from './event-targets';
 import { StageName } from '@orcabus/platform-cdk-constructs/shared-config/accounts';
+import { buildUploadSinglePartFileFargateTask } from './ecs';
 
 export type StatelessApplicationStackProps = StatelessApplicationStackConfig & cdk.StackProps;
 
@@ -40,6 +42,13 @@ export class StatelessApplicationStack extends cdk.Stack {
       props.internalEventBusName
     );
 
+    // Get the icav2 secret
+    const icav2AccessTokenSecretObj = secretsManager.Secret.fromSecretNameV2(
+      this,
+      props.icav2AccessTokenSecretId,
+      props.icav2AccessTokenSecretId
+    );
+
     // Build the lambdas
     const lambdaObjects = buildAllLambdas(this);
 
@@ -54,6 +63,11 @@ export class StatelessApplicationStack extends cdk.Stack {
       eventDetailType: props.eventDetailType,
     });
 
+    // Part 2 - Build ECS Tasks / Fargate Clusters
+    const uploadSinglePartFileFargateTaskObj = buildUploadSinglePartFileFargateTask(this, {
+      icav2AccessTokenSecretObj: icav2AccessTokenSecretObj,
+    });
+
     // Build the step functions
     const stepFunctionObjects = buildAllStepFunctions(this, {
       lambdas: lambdaObjects,
@@ -61,6 +75,7 @@ export class StatelessApplicationStack extends cdk.Stack {
       icav2CopyServiceEventSource: props.eventSource,
       icav2CopyServiceDetailType: props.eventDetailType,
       tableObj: dynamodbTable,
+      uploadSinglePartFileEcsFargateObject: uploadSinglePartFileFargateTaskObj,
       heartBeatRuleName: DEFAULT_HEART_BEAT_EVENT_BRIDGE_RULE_NAME,
     });
 
