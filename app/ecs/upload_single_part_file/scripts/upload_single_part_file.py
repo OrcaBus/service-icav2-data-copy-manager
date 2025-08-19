@@ -63,6 +63,8 @@ from wrapica.project_data import (
 )
 from wrapica.utils.globals import FILE_DATA_TYPE
 
+# Globals
+POST_DELETION_WAIT_TIME = 5  # seconds, time to wait after deleting a file before trying to upload again
 
 def get_shell_script_template() -> str:
     return dedent(
@@ -221,7 +223,7 @@ def main():
                 data_id=existing_project_data_obj.data.id
             )
             # Wait for the db to catch up
-            sleep(5)
+            sleep(POST_DELETION_WAIT_TIME)
         elif existing_project_data_obj.data.details.file_size_in_bytes == source_object.data.details.file_size_in_bytes:
             # If the file sizes match, we can skip the upload
             # Check the file sizes match

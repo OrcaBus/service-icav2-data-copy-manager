@@ -28,7 +28,8 @@ export function buildUploadSinglePartFileFargateTask(
   /*
     Build the Upload SinglePart File Fargate task.
 
-    We use 8 CPUs for this task, as we want the network speed up and the gzip will use the threads.
+    We use 2 CPUs for this task but we need a large amount of memory
+    Since curl downloads and stored in memory and THEN uploads to S3 from memory
     The containerName will be set to 'upload-single-part-file-task'
     and the docker path can be found under ECS_DIR / 'ora_decompression'
     */
