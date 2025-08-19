@@ -18,6 +18,10 @@ import { Construct } from 'constructs';
 function createStateMachineDefinitionSubstitutions(props: BuildSfnProps): {
   [key: string]: string;
 } {
+  /* Sfn permissions */
+  const sfnRequirements = SfnRequirementsMapType[props.stateMachineName];
+
+  /* Ensure that the state machine requirements are defined */
   const definitionSubstitutions: { [key: string]: string } = {};
 
   /* Substitute lambdas in the state machine definition */
@@ -27,6 +31,22 @@ function createStateMachineDefinitionSubstitutions(props: BuildSfnProps): {
       definitionSubstitutions[sfnSubtitutionKey] =
         lambdaObject.lambdaFunction.currentVersion.functionArn;
     }
+  }
+
+  /* Needs Ecs permissions */
+  if (sfnRequirements.needsEcsPermissions) {
+    definitionSubstitutions['__cluster__'] =
+      props.uploadSinglePartFileEcsFargateObject.cluster.clusterArn;
+    definitionSubstitutions['__task_definition__'] =
+      props.uploadSinglePartFileEcsFargateObject.taskDefinition.taskDefinitionArn;
+    definitionSubstitutions['__subnets__'] =
+      props.uploadSinglePartFileEcsFargateObject.cluster.vpc.privateSubnets
+        .map((subnet) => subnet.subnetId)
+        .join(',');
+    definitionSubstitutions['__security_group__'] =
+      props.uploadSinglePartFileEcsFargateObject.securityGroup.securityGroupId;
+    definitionSubstitutions['__container_name__'] =
+      props.uploadSinglePartFileEcsFargateObject.containerDefinition.containerName;
   }
 
   /* Substitute the event bus in the state machine definition */
@@ -58,7 +78,7 @@ function createStateMachineDefinitionSubstitutions(props: BuildSfnProps): {
 }
 
 function wireUpStateMachinePermissions(scope: Construct, props: WirePermissionsProps): void {
-  /* Wire up lambda permissions */
+  /* Wire up sfn permissions */
   const sfnRequirements = SfnRequirementsMapType[props.stateMachineName];
 
   /* Grant invoke on all lambdas required for this state machine */
@@ -72,6 +92,33 @@ function wireUpStateMachinePermissions(scope: Construct, props: WirePermissionsP
       const lambdaObject = props.lambdas.find((lambda) => lambda.lambdaName === lambdaName);
       lambdaObject?.lambdaFunction.currentVersion.grantInvoke(props.stateMachineObj);
     }
+  }
+
+  /* Grant invoke on the fargate upload single file task */
+  if (sfnRequirements.needsEcsPermissions) {
+    props.uploadSinglePartFileEcsFargateObject.taskDefinition.grantRun(props.stateMachineObj);
+
+    /* Grant the state machine access to monitor the tasks */
+    props.stateMachineObj.addToRolePolicy(
+      new iam.PolicyStatement({
+        resources: [
+          `arn:aws:events:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:rule/StepFunctionsGetEventsForECSTaskRule`,
+        ],
+        actions: ['events:PutTargets', 'events:PutRule', 'events:DescribeRule'],
+      })
+    );
+
+    /* Will need cdk nag suppressions for this */
+    NagSuppressions.addResourceSuppressions(
+      props.stateMachineObj,
+      [
+        {
+          id: 'AwsSolutions-IAM5',
+          reason: 'Need ability to put targets and rules for ECS task monitoring',
+        },
+      ],
+      true
+    );
   }
 
   /* Wire up event bus permissions */

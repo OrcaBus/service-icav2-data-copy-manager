@@ -7,6 +7,7 @@ import { StageName } from '@orcabus/platform-cdk-constructs/shared-config/accoun
 export const APP_ROOT = path.join(__dirname, '../../app');
 export const LAMBDA_DIR = path.join(APP_ROOT, 'lambdas');
 export const STEP_FUNCTIONS_DIR = path.join(APP_ROOT, 'step-function-templates');
+export const ECS_DIR = path.join(APP_ROOT, 'ecs');
 
 /* Internal event bus constants */
 export const INTERNAL_EVENT_BUS_DESCRIPTION =

@@ -5,6 +5,7 @@ import { AwsSolutionsChecks, NagSuppressions } from 'cdk-nag';
 import { StatefulApplicationStack } from '../infrastructure/stage/stateful-application-stack';
 import { getStatefulStackProps, getStatelessStackProps } from '../infrastructure/stage/config';
 import { StatelessApplicationStack } from '../infrastructure/stage/stateless-application-stack';
+import { PROD_ENVIRONMENT } from '@orcabus/platform-cdk-constructs/deployment-stack-pipeline';
 
 function synthesisMessageToString(sm: SynthesisMessage): string {
   return `${sm.entry.data} [${sm.id}]`;
@@ -15,6 +16,7 @@ describe('cdk-nag-stateful-stage-stack', () => {
 
   // You should configure all stack (sateless, stateful) to be tested
   const statefulDeploy = new StatefulApplicationStack(app, 'TestStatefulDeploy', {
+    env: PROD_ENVIRONMENT,
     ...getStatefulStackProps('PROD'),
   });
 
@@ -41,6 +43,7 @@ describe('cdk-nag-stateless-stage-stack', () => {
 
   // You should configure all stack (sateless, stateful) to be tested
   const statelessDeploy = new StatelessApplicationStack(app, 'TestStatelessDeploy', {
+    env: PROD_ENVIRONMENT,
     ...getStatelessStackProps('PROD'),
   });
 
