@@ -26,7 +26,7 @@
     "Disable Heartbeat rule": {
       "Type": "Task",
       "Arguments": {
-        "Name": "${__heartbeat_event_bridge_rule_name__}"
+        "Name": "${__internal_heartbeat_event_bridge_rule_name__}"
       },
       "Resource": "arn:aws:states:::aws-sdk:eventbridge:disableRule",
       "End": true

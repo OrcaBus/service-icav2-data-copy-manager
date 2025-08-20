@@ -14,6 +14,7 @@ import path from 'path';
 import { STEP_FUNCTIONS_DIR } from '../constants';
 import { camelCaseToSnakeCase } from '../utils';
 import { Construct } from 'constructs';
+import { eventBridgeNameList, EventBridgeRuleObject } from '../event-rules/interfaces';
 
 function createStateMachineDefinitionSubstitutions(props: BuildSfnProps): {
   [key: string]: string;
@@ -60,8 +61,13 @@ function createStateMachineDefinitionSubstitutions(props: BuildSfnProps): {
   }
 
   /* Substitute the event bridge rule name in the state machine definition */
-  if (props.heartBeatRuleName) {
-    definitionSubstitutions['__heartbeat_event_bridge_rule_name__'] = props.heartBeatRuleName;
+  if (props.internalHeartBeatRuleName) {
+    definitionSubstitutions['__internal_heartbeat_event_bridge_rule_name__'] =
+      props.internalHeartBeatRuleName;
+  }
+  if (props.externalHeartBeatRuleName) {
+    definitionSubstitutions['__external_heartbeat_event_bridge_rule_name__'] =
+      props.externalHeartBeatRuleName;
   }
 
   /* Substitute the event detail type in the state machine definition */
@@ -72,6 +78,12 @@ function createStateMachineDefinitionSubstitutions(props: BuildSfnProps): {
   /* Substitute the event source in the state machine definition */
   if (props.icav2CopyServiceEventSource) {
     definitionSubstitutions['__event_source__'] = props.icav2CopyServiceEventSource;
+  }
+
+  /* Substitute the sfn object arn names in the state machine definition */
+  if (props.handleCopyJobsSfnObject) {
+    definitionSubstitutions['__handle_copy_jobs_state_machine_arn__'] =
+      props.handleCopyJobsSfnObject.stateMachineObj.stateMachineArn;
   }
 
   return definitionSubstitutions;
@@ -142,9 +154,9 @@ function wireUpStateMachinePermissions(scope: Construct, props: WirePermissionsP
   }
 
   /* Wire up event bridge rule permissions */
-  if (sfnRequirements.needsHeartBeatRuleObj) {
+  if (sfnRequirements.needsInternalHeartBeatRuleObj) {
     /* Ensure that the heartbeat rule object is defined */
-    if (!props.heartBeatRuleName) {
+    if (!props.internalHeartBeatRuleName) {
       throw new Error(
         `Heartbeat rule object is not defined for state machine that requires it: ${props.stateMachineName}`
       );
@@ -153,7 +165,23 @@ function wireUpStateMachinePermissions(scope: Construct, props: WirePermissionsP
       new iam.PolicyStatement({
         actions: ['events:EnableRule', 'events:DisableRule'],
         resources: [
-          `arn:aws:events:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:rule/${props.heartBeatRuleName}`,
+          `arn:aws:events:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:rule/${props.internalHeartBeatRuleName}`,
+        ],
+      })
+    );
+  }
+  if (sfnRequirements.needsExternalHeartBeatRuleObj) {
+    /* Ensure that the heartbeat rule object is defined */
+    if (!props.externalHeartBeatRuleName) {
+      throw new Error(
+        `Heartbeat rule object is not defined for state machine that requires it: ${props.stateMachineName}`
+      );
+    }
+    props.stateMachineObj.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['events:EnableRule', 'events:DisableRule'],
+        resources: [
+          `arn:aws:events:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:rule/${props.externalHeartBeatRuleName}`,
         ],
       })
     );
@@ -226,6 +254,39 @@ function wireUpStateMachinePermissions(scope: Construct, props: WirePermissionsP
       true
     );
   }
+
+  /* Add permissions to list the handle copy jobs step function executions and to describe them */
+  if (sfnRequirements.needsHandleCopyJobsListExecutions) {
+    // Ensure that the handle copy jobs step function object is defined
+    if (!props.handleCopyJobsSfnObject) {
+      throw new Error(
+        `Handle copy jobs step function object is not defined for state machine that requires it: ${props.stateMachineName}`
+      );
+    }
+
+    // List and describe executions for the handle copy jobs step function
+    props.stateMachineObj.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['states:ListExecutions', 'states:DescribeExecution'],
+        resources: [
+          props.handleCopyJobsSfnObject.stateMachineObj.stateMachineArn,
+          `arn:aws:states:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:execution:${props.handleCopyJobsSfnObject.stateMachineObj.stateMachineName}/*`,
+        ],
+      })
+    );
+
+    // Will need a cdk nag suppression for this
+    NagSuppressions.addResourceSuppressions(
+      [props.stateMachineObj],
+      [
+        {
+          id: 'AwsSolutions-IAM5',
+          reason: 'Distributed Map IAM Policy requires asterisk in the resource ARN',
+        },
+      ],
+      true
+    );
+  }
 }
 
 function buildStepFunction(scope: Construct, props: BuildSfnProps): SfnObject {
@@ -277,12 +338,32 @@ export function buildAllStepFunctions(scope: Construct, props: BuildSfnsProps): 
 
   // Iterate over lambdaLayerToMapping and create the lambda functions
   for (const sfnName of sfnNameList) {
-    sfnObjects.push(
-      buildStepFunction(scope, {
-        stateMachineName: sfnName,
-        ...props,
-      })
-    );
+    switch (sfnName) {
+      case 'sendHeartbeatExternal': {
+        /*
+        Find the sfn object for the handle copy jobs step function
+        */
+        const handleCopyJobsObject = sfnObjects.find(
+          (sfnObj) => sfnObj.stateMachineName === 'handleCopyJobs'
+        );
+        sfnObjects.push(
+          buildStepFunction(scope, {
+            stateMachineName: sfnName,
+            ...props,
+            handleCopyJobsSfnObject: handleCopyJobsObject,
+          })
+        );
+        break;
+      }
+      default: {
+        sfnObjects.push(
+          buildStepFunction(scope, {
+            stateMachineName: sfnName,
+            ...props,
+          })
+        );
+      }
+    }
   }
 
   return sfnObjects;

@@ -105,10 +105,10 @@ export function buildAllEventBridgeTargets(props: EventBridgeTargetsProps): void
       case 'heartBeatScheduleRuleToSendHeartbeatSfn': {
         buildSfnEventBridgeTargetForScheduledEvents(<AddSfnAsEventBridgeTargetProps>{
           eventBridgeRuleObj: props.eventBridgeRuleObjects.find(
-            (eventBridgeObject) => eventBridgeObject.ruleName === 'heartBeatScheduleRule'
+            (eventBridgeObject) => eventBridgeObject.ruleName === 'internalHeartBeatScheduleRule'
           )?.ruleObject,
           stateMachineObj: props.stepFunctionObjects.find(
-            (eventBridgeObject) => eventBridgeObject.stateMachineName === 'sendHeartbeat'
+            (eventBridgeObject) => eventBridgeObject.stateMachineName === 'sendHeartbeatInternal'
           )?.stateMachineObj,
         });
         break;

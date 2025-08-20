@@ -1,20 +1,29 @@
 /* Step Function interfaces */
 import { StateMachine } from 'aws-cdk-lib/aws-stepfunctions';
-import { LambdaNameList, LambdaObject } from '../lambda/interfaces';
+import { LambdaName, LambdaObject } from '../lambda/interfaces';
 import { EventBridgeNameList } from '../event-rules/interfaces';
 import { IEventBus } from 'aws-cdk-lib/aws-events';
 import { ITableV2 } from 'aws-cdk-lib/aws-dynamodb';
 import { EcsFargateTaskConstruct } from '@orcabus/platform-cdk-constructs/ecs';
 
-export type SfnNameList =
+export type SfnName =
   | 'handleCopyJobs'
   | 'saveJobAndInternalTaskToken'
   | 'sendInternalTaskToken'
-  | 'sendHeartbeat';
+  | 'sendHeartbeatInternal'
+  | 'sendHeartbeatExternal';
+
+export const sfnNameList: SfnName[] = [
+  'handleCopyJobs',
+  'saveJobAndInternalTaskToken',
+  'sendInternalTaskToken',
+  'sendHeartbeatInternal',
+  'sendHeartbeatExternal',
+];
 
 export interface SfnProps {
   /* Naming formation */
-  stateMachineName: SfnNameList;
+  stateMachineName: SfnName;
 }
 
 export interface SfnObject extends SfnProps {
@@ -22,25 +31,18 @@ export interface SfnObject extends SfnProps {
   stateMachineObj: StateMachine;
 }
 
-export const HandleCopyJobsLambdaList: Array<LambdaNameList> = [
+export const HandleCopyJobsLambdaList: LambdaName[] = [
   'generateCopyJobList',
   'launchIcav2Copy',
   'findSinglePartFiles',
   'convertSourceUriFolderToUriList',
 ];
 
-export const SendHeartbeatJobsLambdaList: Array<LambdaNameList> = ['checkJobStatus'];
-
-export const sfnNameList: Array<SfnNameList> = [
-  'handleCopyJobs',
-  'saveJobAndInternalTaskToken',
-  'sendInternalTaskToken',
-  'sendHeartbeat',
-];
+export const SendHeartbeatInternalJobsLambdaList: LambdaName[] = ['checkJobStatus'];
 
 export interface SfnRequirementsProps {
   /* Lambdas */
-  requiredLambdaNameList?: LambdaNameList[];
+  requiredLambdaNameList?: LambdaName[];
 
   /* Event stuff */
   needsInternalEventBus?: boolean;
@@ -54,16 +56,20 @@ export interface SfnRequirementsProps {
   needsTableObj?: boolean;
 
   /* Event Bridge Stuff */
-  needsHeartBeatRuleObj?: boolean;
+  needsInternalHeartBeatRuleObj?: boolean;
+  needsExternalHeartBeatRuleObj?: boolean;
 
   /* Needs task token update permissions */
   needsTaskTokenUpdatePermissions?: boolean;
 
   /* Check if step function needs distributed map policies */
   needsDistributedMapPolicies?: boolean;
+
+  /* Check if step function needs handle copy jobs list executions */
+  needsHandleCopyJobsListExecutions?: boolean;
 }
 
-export const SfnRequirementsMapType: { [key in SfnNameList]: SfnRequirementsProps } = {
+export const SfnRequirementsMapType: { [key in SfnName]: SfnRequirementsProps } = {
   // Handle copy jobs
   handleCopyJobs: {
     /* Lambdas */
@@ -73,6 +79,7 @@ export const SfnRequirementsMapType: { [key in SfnNameList]: SfnRequirementsProp
     needsInternalEventBus: true,
     needsIcav2CopyServiceEventSource: true,
     needsIcav2CopyServiceDetailType: true,
+    needsExternalHeartBeatRuleObj: true,
 
     /* ECS Stuff */
     needsEcsPermissions: true,
@@ -86,7 +93,7 @@ export const SfnRequirementsMapType: { [key in SfnNameList]: SfnRequirementsProp
     needsTableObj: true,
 
     /* Event rule stuff */
-    needsHeartBeatRuleObj: true,
+    needsInternalHeartBeatRuleObj: true,
   },
   // Send internal task token
   sendInternalTaskToken: {
@@ -96,16 +103,16 @@ export const SfnRequirementsMapType: { [key in SfnNameList]: SfnRequirementsProp
     /* Task token permissions */
     needsTaskTokenUpdatePermissions: true,
   },
-  // Send heartbeat
-  sendHeartbeat: {
+  // Send heartbeat internal
+  sendHeartbeatInternal: {
     /* Lambda name list */
-    requiredLambdaNameList: SendHeartbeatJobsLambdaList,
+    requiredLambdaNameList: SendHeartbeatInternalJobsLambdaList,
 
     /* Table stuff */
     needsTableObj: true,
 
     /* Event Stuff */
-    needsHeartBeatRuleObj: true,
+    needsInternalHeartBeatRuleObj: true,
 
     /* Needs task token update permissions */
     needsTaskTokenUpdatePermissions: true,
@@ -113,9 +120,30 @@ export const SfnRequirementsMapType: { [key in SfnNameList]: SfnRequirementsProp
     /* Needs distributed map policies */
     needsDistributedMapPolicies: true,
   },
+  // Send heartbeat external
+  sendHeartbeatExternal: {
+    /* Event Stuff */
+    needsExternalHeartBeatRuleObj: true,
+
+    /* Needs task token update permissions */
+    needsTaskTokenUpdatePermissions: true,
+
+    /* Needs distributed map policies */
+    needsDistributedMapPolicies: true,
+
+    /* Needs handle copy jobs list executions */
+    needsHandleCopyJobsListExecutions: true,
+  },
 };
 
-export type heartBeatRuleNameList = Extract<EventBridgeNameList, 'heartBeatScheduleRule'>;
+export type internalHeartBeatRuleNameList = Extract<
+  EventBridgeNameList,
+  'internalHeartBeatScheduleRule'
+>;
+export type externalHeartBeatRuleNameList = Extract<
+  EventBridgeNameList,
+  'externalHeartBeatScheduleRule'
+>;
 
 export interface BuildSfnProps extends SfnProps {
   /* Lambdas */
@@ -133,7 +161,11 @@ export interface BuildSfnProps extends SfnProps {
   tableObj?: ITableV2;
 
   /* Event Bridge Stuff */
-  heartBeatRuleName?: heartBeatRuleNameList;
+  internalHeartBeatRuleName?: internalHeartBeatRuleNameList;
+  externalHeartBeatRuleName?: externalHeartBeatRuleNameList;
+
+  /* Other sfns */
+  handleCopyJobsSfnObject?: SfnObject;
 }
 
 export type BuildSfnsProps = Omit<BuildSfnProps, 'stateMachineName'>;
