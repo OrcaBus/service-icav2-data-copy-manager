@@ -92,9 +92,83 @@
                         "ProcessorConfig": {
                           "Mode": "INLINE"
                         },
-                        "StartAt": "Upload Single File",
+                        "StartAt": "Save map vars",
                         "States": {
-                          "Upload Single File": {
+                          "Save map vars": {
+                            "Type": "Pass",
+                            "Next": "Get source file size",
+                            "Assign": {
+                              "sourceDataIter": "{% $states.input.sourceDataIter %}",
+                              "destinationDataIter": "{% $states.input.destinationDataIter %}"
+                            }
+                          },
+                          "Get source file size": {
+                            "Type": "Task",
+                            "Resource": "arn:aws:states:::lambda:invoke",
+                            "Arguments": {
+                              "FunctionName": "${__get_source_file_size_lambda_function_arn__}",
+                              "Payload": {
+                                "projectId": "{% $sourceDataIter.projectId %}",
+                                "dataId": "{% $sourceDataIter.dataId %}"
+                              }
+                            },
+                            "Retry": [
+                              {
+                                "ErrorEquals": [
+                                  "Lambda.ServiceException",
+                                  "Lambda.AWSLambdaException",
+                                  "Lambda.SdkClientException",
+                                  "Lambda.TooManyRequestsException"
+                                ],
+                                "IntervalSeconds": 1,
+                                "MaxAttempts": 3,
+                                "BackoffRate": 2,
+                                "JitterStrategy": "FULL"
+                              }
+                            ],
+                            "Next": "Less than eight mbs",
+                            "Output": {
+                              "fileSizeInBytes": "{% $states.result.Payload.fileSizeInBytes %}"
+                            }
+                          },
+                          "Less than eight mbs": {
+                            "Type": "Choice",
+                            "Choices": [
+                              {
+                                "Next": "Upload single file (lambda)",
+                                "Condition": "{% $states.input.fileSizeInBytes < (8 * 1024 * 1024) %}"
+                              }
+                            ],
+                            "Default": "Upload Single File (ECS)"
+                          },
+                          "Upload single file (lambda)": {
+                            "Type": "Task",
+                            "Resource": "arn:aws:states:::lambda:invoke",
+                            "Output": "{% $states.result.Payload %}",
+                            "Arguments": {
+                              "FunctionName": "${__upload_single_file_lambda_function_arn__}",
+                              "Payload": {
+                                "sourceData": "{% $sourceDataIter %}",
+                                "destinationData": "{% $destinationDataIter %}"
+                              }
+                            },
+                            "Retry": [
+                              {
+                                "ErrorEquals": [
+                                  "Lambda.ServiceException",
+                                  "Lambda.AWSLambdaException",
+                                  "Lambda.SdkClientException",
+                                  "Lambda.TooManyRequestsException"
+                                ],
+                                "IntervalSeconds": 1,
+                                "MaxAttempts": 3,
+                                "BackoffRate": 2,
+                                "JitterStrategy": "FULL"
+                              }
+                            ],
+                            "End": true
+                          },
+                          "Upload Single File (ECS)": {
                             "Type": "Task",
                             "Resource": "arn:aws:states:::ecs:runTask.sync",
                             "Arguments": {
@@ -114,19 +188,19 @@
                                     "Environment": [
                                       {
                                         "Name": "SOURCE_PROJECT_ID",
-                                        "Value": "{% $states.input.sourceDataIter.projectId %}"
+                                        "Value": "{% $sourceDataIter.projectId %}"
                                       },
                                       {
                                         "Name": "SOURCE_DATA_ID",
-                                        "Value": "{% $states.input.sourceDataIter.dataId %}"
+                                        "Value": "{% $sourceDataIter.dataId %}"
                                       },
                                       {
                                         "Name": "DEST_PROJECT_ID",
-                                        "Value": "{% $states.input.destinationDataIter.projectId %}"
+                                        "Value": "{% $destinationDataIter.projectId %}"
                                       },
                                       {
                                         "Name": "DEST_DATA_ID",
-                                        "Value": "{% $states.input.destinationDataIter.dataId %}"
+                                        "Value": "{% $destinationDataIter.dataId %}"
                                       }
                                     ]
                                   }
