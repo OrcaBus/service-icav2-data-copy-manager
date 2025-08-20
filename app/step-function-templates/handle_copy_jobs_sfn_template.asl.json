@@ -135,18 +135,18 @@
                             "Type": "Choice",
                             "Choices": [
                               {
-                                "Next": "Upload single file (lambda)",
+                                "Next": "Upload single part file (lambda)",
                                 "Condition": "{% $states.input.fileSizeInBytes < (8 * 1024 * 1024) %}"
                               }
                             ],
                             "Default": "Upload Single File (ECS)"
                           },
-                          "Upload single file (lambda)": {
+                          "Upload single part file (lambda)": {
                             "Type": "Task",
                             "Resource": "arn:aws:states:::lambda:invoke",
                             "Output": "{% $states.result.Payload %}",
                             "Arguments": {
-                              "FunctionName": "${__upload_single_file_lambda_function_arn__}",
+                              "FunctionName": "${__upload_single_part_file_lambda_function_arn__}",
                               "Payload": {
                                 "sourceData": "{% $sourceDataIter %}",
                                 "destinationData": "{% $destinationDataIter %}"
