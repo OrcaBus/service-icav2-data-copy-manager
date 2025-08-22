@@ -14,7 +14,6 @@ import path from 'path';
 import { STEP_FUNCTIONS_DIR } from '../constants';
 import { camelCaseToSnakeCase } from '../utils';
 import { Construct } from 'constructs';
-import { eventBridgeNameList, EventBridgeRuleObject } from '../event-rules/interfaces';
 
 function createStateMachineDefinitionSubstitutions(props: BuildSfnProps): {
   [key: string]: string;
