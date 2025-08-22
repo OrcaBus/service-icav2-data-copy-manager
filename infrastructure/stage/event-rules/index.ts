@@ -165,7 +165,7 @@ export function buildEventBridgeRules(
         });
         break;
       }
-      case 'heartBeatScheduleRule': {
+      case 'internalHeartBeatScheduleRule': {
         eventBridgeObjects.push({
           ruleName: eventBridgeName,
           ruleObject: buildHeartBeatEventBridgeRule(scope, {
@@ -173,6 +173,14 @@ export function buildEventBridgeRules(
           }),
         });
         break;
+      }
+      case 'externalHeartBeatScheduleRule': {
+        eventBridgeObjects.push({
+          ruleName: eventBridgeName,
+          ruleObject: buildHeartBeatEventBridgeRule(scope, {
+            ruleName: eventBridgeName,
+          }),
+        });
       }
     }
   }

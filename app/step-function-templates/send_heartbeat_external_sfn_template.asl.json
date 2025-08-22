@@ -1,0 +1,100 @@
+{
+  "Comment": "A description of my state machine",
+  "StartAt": "List copy-job executions",
+  "States": {
+    "List copy-job executions": {
+      "Type": "Task",
+      "Arguments": {
+        "StateMachineArn": "${__handle_copy_jobs_state_machine_arn__}",
+        "StatusFilter": "RUNNING"
+      },
+      "Resource": "arn:aws:states:::aws-sdk:sfn:listExecutions",
+      "Next": "Any handle copy jobs running?",
+      "Output": {
+        "allExecutions": "{% [$states.result.Executions.(ExecutionArn)] %}"
+      }
+    },
+    "Any handle copy jobs running?": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Next": "Disable send external heartbeat rule",
+          "Condition": "{% $count($states.input.allExecutions) = 0 %}",
+          "Comment": "No current handle copy jobs running"
+        }
+      ],
+      "Default": "For each handle-copy-job execution (batched)"
+    },
+    "Disable send external heartbeat rule": {
+      "Type": "Task",
+      "Arguments": {
+        "Name": "${__external_heartbeat_event_bridge_rule_name__}"
+      },
+      "Resource": "arn:aws:states:::aws-sdk:eventbridge:disableRule",
+      "End": true
+    },
+    "For each handle-copy-job execution (batched)": {
+      "Type": "Map",
+      "ItemProcessor": {
+        "ProcessorConfig": {
+          "Mode": "DISTRIBUTED",
+          "ExecutionType": "STANDARD"
+        },
+        "StartAt": "For each handle-copy-job execution",
+        "States": {
+          "For each handle-copy-job execution": {
+            "Type": "Map",
+            "ItemProcessor": {
+              "ProcessorConfig": {
+                "Mode": "INLINE"
+              },
+              "StartAt": "Get task token input",
+              "States": {
+                "Get task token input": {
+                  "Type": "Task",
+                  "Arguments": {
+                    "ExecutionArn": "{% $states.input.executionArn %}"
+                  },
+                  "Resource": "arn:aws:states:::aws-sdk:sfn:describeExecution",
+                  "Output": {
+                    "taskToken": "{% $parse($states.result.Input) ~> $lookup('taskToken') %}"
+                  },
+                  "Next": "Send task heartbeat of running copy job"
+                },
+                "Send task heartbeat of running copy job": {
+                  "Type": "Task",
+                  "Arguments": {
+                    "TaskToken": "{% $states.input.taskToken %}"
+                  },
+                  "Resource": "arn:aws:states:::aws-sdk:sfn:sendTaskHeartbeat",
+                  "Catch": [
+                    {
+                      "ErrorEquals": ["Sfn.TaskTimedOutException"],
+                      "Next": "Pass"
+                    }
+                  ],
+                  "End": true
+                },
+                "Pass": {
+                  "Type": "Pass",
+                  "End": true
+                }
+              }
+            },
+            "End": true,
+            "Items": "{% $states.input.Items %}",
+            "ItemSelector": {
+              "executionArn": "{% $states.context.Map.Item.Value %}"
+            }
+          }
+        }
+      },
+      "End": true,
+      "Items": "{% $states.input.allExecutions %}",
+      "Label": "Foreachhandle-copy-jobexecutionbatched",
+      "MaxConcurrency": 1000,
+      "ItemBatcher": {}
+    }
+  },
+  "QueryLanguage": "JSONata"
+}

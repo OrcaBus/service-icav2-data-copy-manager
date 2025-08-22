@@ -9,7 +9,10 @@ import * as secretsManager from 'aws-cdk-lib/aws-secretsmanager';
 
 // Local imports
 import { StatelessApplicationStackConfig } from './interfaces';
-import { DEFAULT_HEART_BEAT_EVENT_BRIDGE_RULE_NAME } from './constants';
+import {
+  DEFAULT_HEART_BEAT_EXTERNAL_EVENT_BRIDGE_RULE_NAME,
+  DEFAULT_HEART_BEAT_INTERNAL_EVENT_BRIDGE_RULE_NAME,
+} from './constants';
 import { NagSuppressions } from 'cdk-nag';
 import { buildAllLambdas } from './lambda';
 import { buildEventBridgeRules } from './event-rules';
@@ -76,7 +79,8 @@ export class StatelessApplicationStack extends cdk.Stack {
       icav2CopyServiceDetailType: props.eventDetailType,
       tableObj: dynamodbTable,
       uploadSinglePartFileEcsFargateObject: uploadSinglePartFileFargateTaskObj,
-      heartBeatRuleName: DEFAULT_HEART_BEAT_EVENT_BRIDGE_RULE_NAME,
+      internalHeartBeatRuleName: DEFAULT_HEART_BEAT_INTERNAL_EVENT_BRIDGE_RULE_NAME,
+      externalHeartBeatRuleName: DEFAULT_HEART_BEAT_EXTERNAL_EVENT_BRIDGE_RULE_NAME,
     });
 
     // Add the event-bridge rules

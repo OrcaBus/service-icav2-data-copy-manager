@@ -20,7 +20,8 @@ export const INTERNAL_EVENT_BUS_DESCRIPTION =
 // We also need to hardcode the event bridge rule name to prevent
 // circular dependencies in the CDK
 export const DEFAULT_HEART_BEAT_INTERVAL = Duration.minutes(3);
-export const DEFAULT_HEART_BEAT_EVENT_BRIDGE_RULE_NAME = 'heartBeatScheduleRule';
+export const DEFAULT_HEART_BEAT_INTERNAL_EVENT_BRIDGE_RULE_NAME = 'internalHeartBeatScheduleRule';
+export const DEFAULT_HEART_BEAT_EXTERNAL_EVENT_BRIDGE_RULE_NAME = 'externalHeartBeatScheduleRule';
 
 /* Evevnt pipe constants */
 // Event pipe is used to send events from the SQS queue to the event bus

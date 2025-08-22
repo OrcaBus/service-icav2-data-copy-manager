@@ -1,7 +1,7 @@
 /* Lambda interfaces */
 import { PythonFunction } from '@aws-cdk/aws-lambda-python-alpha';
 
-export type LambdaNameList =
+export type LambdaName =
   | 'findSinglePartFiles'
   | 'convertSourceUriFolderToUriList'
   | 'generateCopyJobList'
@@ -10,7 +10,7 @@ export type LambdaNameList =
 
 /* Lambda names array */
 /* Bit of double handling, BUT types are not parsed to JS */
-export const lambdaNameList: Array<LambdaNameList> = [
+export const lambdaNameList: LambdaName[] = [
   'findSinglePartFiles',
   'convertSourceUriFolderToUriList',
   'generateCopyJobList',
@@ -23,7 +23,7 @@ export interface LambdaRequirementProps {
   needsIcav2AccessToken: boolean;
 }
 
-export type LambdaToRequirementsMapType = { [key in LambdaNameList]: LambdaRequirementProps };
+export type LambdaToRequirementsMapType = { [key in LambdaName]: LambdaRequirementProps };
 
 export const lambdaToRequirementsMap: LambdaToRequirementsMapType = {
   findSinglePartFiles: {
@@ -44,7 +44,7 @@ export const lambdaToRequirementsMap: LambdaToRequirementsMapType = {
 };
 
 export interface BuildLambdaProps {
-  lambdaName: LambdaNameList;
+  lambdaName: LambdaName;
 }
 
 export interface LambdaObject extends BuildLambdaProps {

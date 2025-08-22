@@ -5,12 +5,20 @@
   "States": {
     "Set variables from inputs": {
       "Type": "Pass",
-      "Next": "Generate copy job list",
+      "Next": "Turn on rule",
       "Assign": {
         "sourceUriList": "{% $states.input.payload.sourceUriList %}",
         "destinationUri": "{% $states.input.payload.destinationUri %}",
         "taskToken": "{% $states.input.taskToken ? $states.input.taskToken : null %}"
       }
+    },
+    "Turn on rule": {
+      "Type": "Task",
+      "Arguments": {
+        "Name": "${__external_heartbeat_event_bridge_rule_name__}"
+      },
+      "Resource": "arn:aws:states:::aws-sdk:eventbridge:enableRule",
+      "Next": "Generate copy job list"
     },
     "Generate copy job list": {
       "Type": "Task",
