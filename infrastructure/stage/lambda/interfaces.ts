@@ -6,7 +6,9 @@ export type LambdaName =
   | 'convertSourceUriFolderToUriList'
   | 'generateCopyJobList'
   | 'launchIcav2Copy'
-  | 'checkJobStatus';
+  | 'checkJobStatus'
+  | 'uploadSinglePartFile'
+  | 'getSourceFileSize';
 
 /* Lambda names array */
 /* Bit of double handling, BUT types are not parsed to JS */
@@ -16,6 +18,8 @@ export const lambdaNameList: LambdaName[] = [
   'generateCopyJobList',
   'launchIcav2Copy',
   'checkJobStatus',
+  'uploadSinglePartFile',
+  'getSourceFileSize',
 ];
 
 /* We also throw in our custom application interfaces here too */
@@ -39,6 +43,12 @@ export const lambdaToRequirementsMap: LambdaToRequirementsMapType = {
     needsIcav2AccessToken: true,
   },
   checkJobStatus: {
+    needsIcav2AccessToken: true,
+  },
+  uploadSinglePartFile: {
+    needsIcav2AccessToken: true,
+  },
+  getSourceFileSize: {
     needsIcav2AccessToken: true,
   },
 };

@@ -36,6 +36,8 @@ export const HandleCopyJobsLambdaList: LambdaName[] = [
   'launchIcav2Copy',
   'findSinglePartFiles',
   'convertSourceUriFolderToUriList',
+  'uploadSinglePartFile',
+  'getSourceFileSize',
 ];
 
 export const SendHeartbeatInternalJobsLambdaList: LambdaName[] = ['checkJobStatus'];

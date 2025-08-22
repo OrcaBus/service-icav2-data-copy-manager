@@ -1,0 +1,235 @@
+#!/usr/bin/env python3
+
+"""
+Upload a single part file to S3 using the boto3 library.
+
+Rather than download + upload we perform the following steps:
+
+1. Get AWS credentials for the parent directory
+
+2. Get the file size of the file to be uploaded
+
+3. Generate a presigned URL for the file to be downloaded
+
+4. Create a temp shell script with the following template:
+
+'
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+wget \
+ --quiet \
+ --output-document /dev/stdout \
+ "{__PRESIGNED_URL__}" | \
+aws s3 cp --expected-size "${__FILE_SIZE_IN_BYTES__}" - "${__DESTINATION_PATH__}"
+'
+
+We then run the shell script through subprocess.run with the following environment variables set
+
+1. AWS_ACCESS_KEY_ID - the access key id for this destination path
+2. AWS_SECRET_ACCESS_KEY - the secret access key for this destination path
+3. AWS_SESSION_TOKEN - the session token for this destination path
+
+We take in the following inputs:
+
+{
+    "sourceData": {
+      "projectId": "abcdefghijklmnop",
+      "dataId": "fil.abcdefghijklmnop",
+    }
+    "destinationData": {
+      "projectId": "abcdefghijklmnop",
+      "dataId": "fil.abcdefghijklmnop",
+    }
+}
+"""
+
+# Standard library imports
+from pathlib import Path
+from textwrap import dedent
+from tempfile import NamedTemporaryFile
+from subprocess import run
+from time import sleep
+
+# Layer imports
+from icav2_tools import set_icav2_env_vars
+
+# Wrapica imports
+from wrapica.project_data import (
+    create_download_url,
+    get_project_data_obj_by_id,
+    get_project_data_obj_from_project_id_and_path,
+    create_file_with_upload_url, delete_project_data
+)
+from wrapica.utils.globals import FILE_DATA_TYPE
+
+
+# Globals
+POST_DELETION_WAIT_TIME = 5  # seconds
+
+
+def get_shell_script_template() -> str:
+    return dedent(
+        """
+        #!/usr/bin/env bash
+
+        set -euo pipefail
+
+        curl --location \
+         "__DOWNLOAD_PRESIGNED_URL__" | \
+        curl --location \
+          --request PUT \
+          --header 'Content-Type: application/octet-stream' \
+          --data-binary "@-" \
+          "__UPLOAD_PRESIGNED_URL__"
+        """
+    )
+
+
+def generate_shell_script(
+        source_file_download_url: str,
+        destination_file_upload_url: str,
+):
+    # Create a temp file
+    temp_file_path = NamedTemporaryFile(
+        delete=False,
+        suffix=".sh"
+    ).name
+
+    # Write the shell script to the temp file
+    with open(temp_file_path, "w") as temp_file_h:
+        temp_file_h.write(
+            get_shell_script_template().replace(
+                "__DOWNLOAD_PRESIGNED_URL__", source_file_download_url
+            ).replace(
+                "__UPLOAD_PRESIGNED_URL__", destination_file_upload_url
+            ) + "\n"
+        )
+
+    return temp_file_path
+
+
+def run_shell_script(
+        shell_script_path: str,
+):
+    """
+    Run the shell script with the following environment variables set
+    :param shell_script_path:
+    :return:
+    """
+    proc = run(
+        [
+            "bash", shell_script_path
+        ],
+        capture_output=True
+    )
+
+    if not proc.returncode == 0:
+        raise RuntimeError(
+            f"Failed to run shell script {shell_script_path} with return code {proc.returncode}. "
+            f"Stdout was {proc.stdout.decode()}"
+            f"Stderr was {proc.stderr.decode()}"
+        )
+
+    return
+
+
+def handler(event, context):
+    """
+    Given the inputs of
+    :param event:
+    :param context:
+    :return:
+    """
+    set_icav2_env_vars()
+
+    # Get the source file object
+    source_object = get_project_data_obj_by_id(
+        project_id=event["sourceData"]["projectId"],
+        data_id=event["sourceData"]["dataId"]
+    )
+    # Get the destination folder object
+    destination_folder_object = get_project_data_obj_by_id(
+        project_id=event["destinationData"]["projectId"],
+        data_id=event["destinationData"]["dataId"]
+    )
+
+    # Create the source file download url
+    source_file_download_url = create_download_url(
+        project_id=source_object.project_id,
+        file_id=source_object.data.id,
+    )
+
+    # Check if the destination file exists
+    try:
+        existing_project_data_obj = get_project_data_obj_from_project_id_and_path(
+            project_id=destination_folder_object.project_id,
+            data_path=Path(destination_folder_object.data.details.path) / source_object.data.details.name,
+            data_type=FILE_DATA_TYPE
+        )
+        # If we have a partial file, we can delete it and re-upload
+        if existing_project_data_obj.data.details.status == 'PARTIAL':
+            # Delete the file
+            delete_project_data(
+                project_id=destination_folder_object.project_id,
+                data_id=existing_project_data_obj.data.id
+            )
+            # Wait for the db to catch up
+            sleep(POST_DELETION_WAIT_TIME)
+        elif existing_project_data_obj.data.details.file_size_in_bytes == source_object.data.details.file_size_in_bytes:
+            # If the file sizes match, we can skip the upload
+            # Check the file sizes match
+            return
+        else:
+            raise RuntimeError(
+                f"File {existing_project_data_obj.data.details.path} already exists in destination folder "
+                f"with a different file size. Cannot overwrite."
+            )
+
+    except FileNotFoundError:
+        pass
+    # Create the file object
+    destination_file_upload_url = create_file_with_upload_url(
+        project_id=destination_folder_object.project_id,
+        folder_id=destination_folder_object.data.id,
+        file_name=source_object.data.details.name
+    )
+
+    # Get the shell script
+    shell_script_path = generate_shell_script(
+        source_file_download_url,
+        destination_file_upload_url
+    )
+
+    # Run the shell script
+    run_shell_script(
+        shell_script_path=shell_script_path,
+    )
+
+
+# if __name__ == "__main__":
+#     from os import environ
+#     import json
+#
+#     environ['AWS_PROFILE'] = 'umccr-production'
+#     environ['AWS_REGION'] = 'ap-southeast-2'
+#     environ["ICAV2_ACCESS_TOKEN_SECRET_ID"] = "ICAv2JWTKey-umccr-prod-service-production"
+#
+#     print(json.dumps(
+#         handler(
+#             {
+#                 "sourceData": {
+#                     "projectId": "eba5c946-1677-441d-bbce-6a11baadecbb",
+#                     "dataId": "fil.be1b0cc74abe44c919a008dd6f300f84"
+#                 },
+#                 "destinationData": {
+#                     "projectId": "6f123cb4-cbd2-46a8-82a8-d91dcb608817",
+#                     "dataId": "fol.2379160ba4884949471008dd77d4a93c"
+#                 }
+#             },
+#             None)
+#         , indent=4
+#     ))
+#
+#     # null
