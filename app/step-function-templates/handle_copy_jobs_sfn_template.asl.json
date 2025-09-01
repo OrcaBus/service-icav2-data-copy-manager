@@ -42,6 +42,13 @@
           "MaxAttempts": 3,
           "BackoffRate": 2,
           "JitterStrategy": "FULL"
+        },
+        {
+          "ErrorEquals": ["ThrottlingException"],
+          "BackoffRate": 2,
+          "IntervalSeconds": 1,
+          "MaxAttempts": 5,
+          "JitterStrategy": "FULL"
         }
       ],
       "Next": "Run top level and recursive in parallel",
@@ -78,6 +85,13 @@
                   "IntervalSeconds": 1,
                   "MaxAttempts": 3,
                   "BackoffRate": 2,
+                  "JitterStrategy": "FULL"
+                },
+                {
+                  "ErrorEquals": ["ThrottlingException"],
+                  "BackoffRate": 2,
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 5,
                   "JitterStrategy": "FULL"
                 }
               ],
@@ -132,6 +146,13 @@
                                 "MaxAttempts": 3,
                                 "BackoffRate": 2,
                                 "JitterStrategy": "FULL"
+                              },
+                              {
+                                "ErrorEquals": ["ThrottlingException"],
+                                "BackoffRate": 2,
+                                "IntervalSeconds": 1,
+                                "MaxAttempts": 10,
+                                "JitterStrategy": "FULL"
                               }
                             ],
                             "Next": "Less than eight mbs",
@@ -171,6 +192,13 @@
                                 "IntervalSeconds": 1,
                                 "MaxAttempts": 3,
                                 "BackoffRate": 2,
+                                "JitterStrategy": "FULL"
+                              },
+                              {
+                                "ErrorEquals": ["ThrottlingException"],
+                                "BackoffRate": 2,
+                                "IntervalSeconds": 1,
+                                "MaxAttempts": 10,
                                 "JitterStrategy": "FULL"
                               }
                             ],
@@ -278,6 +306,13 @@
                           "IntervalSeconds": 1,
                           "MaxAttempts": 3,
                           "BackoffRate": 2,
+                          "JitterStrategy": "FULL"
+                        },
+                        {
+                          "ErrorEquals": ["ThrottlingException"],
+                          "BackoffRate": 2,
+                          "IntervalSeconds": 1,
+                          "MaxAttempts": 5,
                           "JitterStrategy": "FULL"
                         }
                       ],
@@ -408,7 +443,16 @@
                         }
                       ]
                     },
-                    "End": true
+                    "End": true,
+                    "Retry": [
+                      {
+                        "ErrorEquals": ["States.HeartbeatTimeout"],
+                        "BackoffRate": 2,
+                        "IntervalSeconds": 1,
+                        "MaxAttempts": 3
+                      }
+                    ],
+                    "HeartbeatSeconds": 3600
                   }
                 }
               },
