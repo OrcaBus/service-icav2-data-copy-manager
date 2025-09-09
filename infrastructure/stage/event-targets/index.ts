@@ -102,7 +102,7 @@ export function buildAllEventBridgeTargets(props: EventBridgeTargetsProps): void
         });
         break;
       }
-      case 'heartBeatScheduleRuleToSendHeartbeatSfn': {
+      case 'internalHeartBeatScheduleRuleToSendHeartbeatSfn': {
         buildSfnEventBridgeTargetForScheduledEvents(<AddSfnAsEventBridgeTargetProps>{
           eventBridgeRuleObj: props.eventBridgeRuleObjects.find(
             (eventBridgeObject) => eventBridgeObject.ruleName === 'internalHeartBeatScheduleRule'
@@ -112,6 +112,16 @@ export function buildAllEventBridgeTargets(props: EventBridgeTargetsProps): void
           )?.stateMachineObj,
         });
         break;
+      }
+      case 'externalHeartBeatScheduleRuleToSendHeartbeatSfn': {
+        buildSfnEventBridgeTargetForScheduledEvents(<AddSfnAsEventBridgeTargetProps>{
+          eventBridgeRuleObj: props.eventBridgeRuleObjects.find(
+            (eventBridgeObject) => eventBridgeObject.ruleName === 'externalHeartBeatScheduleRule'
+          )?.ruleObject,
+          stateMachineObj: props.stepFunctionObjects.find(
+            (eventBridgeObject) => eventBridgeObject.stateMachineName === 'sendHeartbeatExternal'
+          )?.stateMachineObj,
+        });
       }
     }
   }
