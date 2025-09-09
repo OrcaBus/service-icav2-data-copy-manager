@@ -4,22 +4,33 @@
   "States": {
     "List copy-job executions": {
       "Type": "Task",
-      "Arguments": {
-        "StateMachineArn": "${__handle_copy_jobs_state_machine_arn__}",
-        "StatusFilter": "RUNNING"
-      },
       "Resource": "arn:aws:states:::aws-sdk:sfn:listExecutions",
-      "Next": "Any handle copy jobs running?",
+      "Next": "Has next token",
       "Output": {
-        "allExecutions": "{% [$states.result.Executions.(ExecutionArn)] %}"
-      }
+        "nextToken": "{% $states.result.NextToken ? $states.result.NextToken : false %}"
+      },
+      "Assign": {
+        "allExecutions": "{% $append(\n  ($allExecutions ? $allExecutions : []),\n  [$states.result.Executions.(ExecutionArn)]\n) %}"
+      },
+      "Arguments": "{% {\n  \"StateMachineArn\": \"${__handle_copy_jobs_state_machine_arn__}\",\n  \"StatusFilter\": \"RUNNING\",\n  \"NextToken\": $states.input.nextToken ? $states.input.nextToken : null\n} ~>\n$sift(function($v, $k){$v != null}) %}"
+    },
+    "Has next token": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Next": "List copy-job executions",
+          "Condition": "{% $states.input.nextToken ? true : false %}",
+          "Comment": "Get all executions on next page"
+        }
+      ],
+      "Default": "Any handle copy jobs running?"
     },
     "Any handle copy jobs running?": {
       "Type": "Choice",
       "Choices": [
         {
           "Next": "Disable send external heartbeat rule",
-          "Condition": "{% $count($states.input.allExecutions) = 0 %}",
+          "Condition": "{% $count($allExecutions) = 0 %}",
           "Comment": "No current handle copy jobs running"
         }
       ],
@@ -90,10 +101,12 @@
         }
       },
       "End": true,
-      "Items": "{% $states.input.allExecutions %}",
+      "Items": "{% $allExecutions %}",
       "Label": "Foreachhandle-copy-jobexecutionbatched",
       "MaxConcurrency": 1000,
-      "ItemBatcher": {}
+      "ItemBatcher": {
+        "MaxItemsPerBatch": 50
+      }
     }
   },
   "QueryLanguage": "JSONata"

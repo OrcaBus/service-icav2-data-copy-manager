@@ -269,7 +269,7 @@ function wireUpStateMachinePermissions(scope: Construct, props: WirePermissionsP
         actions: ['states:ListExecutions', 'states:DescribeExecution'],
         resources: [
           props.handleCopyJobsSfnObject.stateMachineObj.stateMachineArn,
-          `arn:aws:states:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:execution:${props.handleCopyJobsSfnObject.stateMachineObj.stateMachineName}/*`,
+          `arn:aws:states:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:execution:${props.handleCopyJobsSfnObject.stateMachineObj.stateMachineName}:*`,
         ],
       })
     );

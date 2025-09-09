@@ -14,7 +14,8 @@ export type EventBridgeTargetsNameList =
   | 'externalCopyJobRuleToHandleCopyJobsSfn'
   | 'externalCopyJobLegacyRuleToHandleCopyJobsSfn'
   | 'iCAv2CopyJobEventPipeToSendInternalTaskTokenSfn'
-  | 'heartBeatScheduleRuleToSendHeartbeatSfn';
+  | 'internalHeartBeatScheduleRuleToSendHeartbeatSfn'
+  | 'externalHeartBeatScheduleRuleToSendHeartbeatSfn';
 
 export interface EventBridgeTargetsProps {
   eventBridgeRuleObjects: EventBridgeRuleObject[];
@@ -27,5 +28,6 @@ export const eventBridgeTargetsNameList: Array<EventBridgeTargetsNameList> = [
   'externalCopyJobRuleToHandleCopyJobsSfn',
   'externalCopyJobLegacyRuleToHandleCopyJobsSfn',
   'iCAv2CopyJobEventPipeToSendInternalTaskTokenSfn',
-  'heartBeatScheduleRuleToSendHeartbeatSfn',
+  'internalHeartBeatScheduleRuleToSendHeartbeatSfn',
+  'externalHeartBeatScheduleRuleToSendHeartbeatSfn',
 ];
