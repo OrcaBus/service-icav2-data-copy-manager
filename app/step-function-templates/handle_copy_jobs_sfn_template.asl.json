@@ -46,8 +46,8 @@
         {
           "ErrorEquals": ["ThrottlingException"],
           "BackoffRate": 2,
-          "IntervalSeconds": 1,
-          "MaxAttempts": 5,
+          "IntervalSeconds": 100,
+          "MaxAttempts": 2,
           "JitterStrategy": "FULL"
         }
       ],
@@ -90,20 +90,19 @@
                 {
                   "ErrorEquals": ["ThrottlingException"],
                   "BackoffRate": 2,
-                  "IntervalSeconds": 1,
-                  "MaxAttempts": 5,
+                  "IntervalSeconds": 100,
+                  "MaxAttempts": 2,
                   "JitterStrategy": "FULL"
                 }
               ],
-              "Next": "Parallel",
+              "Next": "Handle single and multi-part files simultaneously",
               "Assign": {
                 "multiPartDataList": "{% $states.result.Payload.multiPartDataList %}",
                 "singlePartDataList": "{% $states.result.Payload.singlePartDataList %}"
               }
             },
-            "Parallel": {
+            "Handle single and multi-part files simultaneously": {
               "Type": "Parallel",
-              "Next": "Pass",
               "Branches": [
                 {
                   "StartAt": "Upload single file",
@@ -150,8 +149,8 @@
                               {
                                 "ErrorEquals": ["ThrottlingException"],
                                 "BackoffRate": 2,
-                                "IntervalSeconds": 1,
-                                "MaxAttempts": 10,
+                                "IntervalSeconds": 100,
+                                "MaxAttempts": 2,
                                 "JitterStrategy": "FULL"
                               }
                             ],
@@ -197,8 +196,8 @@
                               {
                                 "ErrorEquals": ["ThrottlingException"],
                                 "BackoffRate": 2,
-                                "IntervalSeconds": 1,
-                                "MaxAttempts": 10,
+                                "IntervalSeconds": 100,
+                                "MaxAttempts": 2,
                                 "JitterStrategy": "FULL"
                               }
                             ],
@@ -261,7 +260,8 @@
                       "ItemSelector": {
                         "sourceDataIter": "{% $states.context.Map.Item.Value %}",
                         "destinationDataIter": "{% $destinationData %}"
-                      }
+                      },
+                      "MaxConcurrency": 40
                     }
                   }
                 },
@@ -311,8 +311,8 @@
                         {
                           "ErrorEquals": ["ThrottlingException"],
                           "BackoffRate": 2,
-                          "IntervalSeconds": 1,
-                          "MaxAttempts": 5,
+                          "IntervalSeconds": 100,
+                          "MaxAttempts": 2,
                           "JitterStrategy": "FULL"
                         }
                       ],
@@ -376,10 +376,7 @@
                     }
                   }
                 }
-              ]
-            },
-            "Pass": {
-              "Type": "Pass",
+              ],
               "End": true
             }
           }
@@ -415,6 +412,13 @@
                         "IntervalSeconds": 1,
                         "MaxAttempts": 3,
                         "BackoffRate": 2,
+                        "JitterStrategy": "FULL"
+                      },
+                      {
+                        "ErrorEquals": ["ThrottlingException"],
+                        "BackoffRate": 2,
+                        "IntervalSeconds": 100,
+                        "MaxAttempts": 2,
                         "JitterStrategy": "FULL"
                       }
                     ],
@@ -461,7 +465,8 @@
               "ItemSelector": {
                 "destinationUriIter": "{% $states.context.Map.Item.Value.destinationUri %}",
                 "sourceUriIter": "{% $states.context.Map.Item.Value.sourceUri %}"
-              }
+              },
+              "MaxConcurrency": 40
             }
           }
         }
@@ -474,7 +479,16 @@
         "TaskToken": "{% $taskToken %}"
       },
       "Resource": "arn:aws:states:::aws-sdk:sfn:sendTaskSuccess",
-      "End": true
+      "End": true,
+      "Catch": [
+        {
+          "ErrorEquals": ["Sfn.TaskTimedOutException"],
+          "Next": "Task timed out, no stress"
+        }
+      ]
+    },
+    "Task timed out, no stress": {
+      "Type": "Succeed"
     }
   }
 }
