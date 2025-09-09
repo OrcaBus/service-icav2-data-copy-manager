@@ -122,6 +122,7 @@ export function buildAllEventBridgeTargets(props: EventBridgeTargetsProps): void
             (eventBridgeObject) => eventBridgeObject.stateMachineName === 'sendHeartbeatExternal'
           )?.stateMachineObj,
         });
+        break;
       }
     }
   }
