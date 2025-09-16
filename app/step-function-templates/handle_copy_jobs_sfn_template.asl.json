@@ -49,6 +49,13 @@
           "IntervalSeconds": 100,
           "MaxAttempts": 2,
           "JitterStrategy": "FULL"
+        },
+        {
+          "ErrorEquals": ["ApiException"],
+          "BackoffRate": 2,
+          "MaxAttempts": 3,
+          "IntervalSeconds": 60,
+          "JitterStrategy": "FULL"
         }
       ],
       "Next": "Run top level and recursive in parallel",
@@ -92,6 +99,13 @@
                   "BackoffRate": 2,
                   "IntervalSeconds": 100,
                   "MaxAttempts": 2,
+                  "JitterStrategy": "FULL"
+                },
+                {
+                  "ErrorEquals": ["ApiException"],
+                  "BackoffRate": 2,
+                  "MaxAttempts": 3,
+                  "IntervalSeconds": 60,
                   "JitterStrategy": "FULL"
                 }
               ],
@@ -152,6 +166,13 @@
                                 "IntervalSeconds": 100,
                                 "MaxAttempts": 2,
                                 "JitterStrategy": "FULL"
+                              },
+                              {
+                                "ErrorEquals": ["ApiException"],
+                                "BackoffRate": 2,
+                                "MaxAttempts": 3,
+                                "IntervalSeconds": 60,
+                                "JitterStrategy": "FULL"
                               }
                             ],
                             "Next": "Less than eight mbs",
@@ -198,6 +219,13 @@
                                 "BackoffRate": 2,
                                 "IntervalSeconds": 100,
                                 "MaxAttempts": 2,
+                                "JitterStrategy": "FULL"
+                              },
+                              {
+                                "ErrorEquals": ["ApiException"],
+                                "BackoffRate": 2,
+                                "MaxAttempts": 3,
+                                "IntervalSeconds": 60,
                                 "JitterStrategy": "FULL"
                               }
                             ],
@@ -313,6 +341,13 @@
                           "BackoffRate": 2,
                           "IntervalSeconds": 100,
                           "MaxAttempts": 2,
+                          "JitterStrategy": "FULL"
+                        },
+                        {
+                          "ErrorEquals": ["ApiException"],
+                          "BackoffRate": 2,
+                          "MaxAttempts": 3,
+                          "IntervalSeconds": 60,
                           "JitterStrategy": "FULL"
                         }
                       ],
