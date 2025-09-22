@@ -37,6 +37,9 @@ export const DEFAULT_DLQ_ALARM_THRESHOLD = 1;
 export const DEFAULT_ICA_AWS_ACCOUNT_NUMBER = '079623148045';
 export const ICA_COPY_JOB_EVENT_CODE = 'ICA_JOB_001';
 
+/* Stack constants */
+export const STACK_PREFIX = 'icav2-data';
+
 /* UMCCR / CCGCM constants */
 
 /* DynamoDB table constants */

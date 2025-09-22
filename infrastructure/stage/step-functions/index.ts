@@ -11,7 +11,7 @@ import * as cdk from 'aws-cdk-lib';
 import { NagSuppressions } from 'cdk-nag';
 import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
 import path from 'path';
-import { STEP_FUNCTIONS_DIR } from '../constants';
+import { STACK_PREFIX, STEP_FUNCTIONS_DIR } from '../constants';
 import { camelCaseToSnakeCase } from '../utils';
 import { Construct } from 'constructs';
 
@@ -293,7 +293,7 @@ function buildStepFunction(scope: Construct, props: BuildSfnProps): SfnObject {
 
   /* Create the state machine definition substitutions */
   const stateMachine = new sfn.StateMachine(scope, props.stateMachineName, {
-    stateMachineName: `icav2-${props.stateMachineName}`,
+    stateMachineName: `${STACK_PREFIX}-${props.stateMachineName}`,
     definitionBody: sfn.DefinitionBody.fromFile(
       path.join(STEP_FUNCTIONS_DIR, sfnNameToSnakeCase + `_sfn_template.asl.json`)
     ),
