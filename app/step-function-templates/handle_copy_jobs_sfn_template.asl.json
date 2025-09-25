@@ -67,7 +67,7 @@
           "JitterStrategy": "FULL"
         },
         {
-          "ErrorEquals": ["Sandbox.Timeout"],
+          "ErrorEquals": ["Sandbox.Timedout"],
           "BackoffRate": 2,
           "MaxAttempts": 3,
           "Comment": "Handle timeout",
@@ -125,7 +125,7 @@
                   "JitterStrategy": "FULL"
                 },
                 {
-                  "ErrorEquals": ["Sandbox.Timeout"],
+                  "ErrorEquals": ["Sandbox.Timedout"],
                   "BackoffRate": 2,
                   "MaxAttempts": 3,
                   "Comment": "Handle timeout",
@@ -198,7 +198,7 @@
                                 "JitterStrategy": "FULL"
                               },
                               {
-                                "ErrorEquals": ["Sandbox.Timeout"],
+                                "ErrorEquals": ["Sandbox.Timedout"],
                                 "BackoffRate": 2,
                                 "MaxAttempts": 3,
                                 "Comment": "Handle timeout",
@@ -259,7 +259,7 @@
                                 "JitterStrategy": "FULL"
                               },
                               {
-                                "ErrorEquals": ["Sandbox.Timeout"],
+                                "ErrorEquals": ["Sandbox.Timedout"],
                                 "BackoffRate": 2,
                                 "MaxAttempts": 3,
                                 "Comment": "Handle timeout",
@@ -388,7 +388,7 @@
                           "JitterStrategy": "FULL"
                         },
                         {
-                          "ErrorEquals": ["Sandbox.Timeout"],
+                          "ErrorEquals": ["Sandbox.Timedout"],
                           "BackoffRate": 2,
                           "MaxAttempts": 3,
                           "Comment": "Handle timeout",
@@ -508,7 +508,7 @@
                         "JitterStrategy": "FULL"
                       },
                       {
-                        "ErrorEquals": ["Sandbox.Timeout"],
+                        "ErrorEquals": ["Sandbox.Timedout"],
                         "BackoffRate": 2,
                         "MaxAttempts": 3,
                         "Comment": "Handle timeout",
