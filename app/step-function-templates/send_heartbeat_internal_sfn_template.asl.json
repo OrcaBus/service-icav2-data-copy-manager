@@ -29,6 +29,15 @@
         "Name": "${__internal_heartbeat_event_bridge_rule_name__}"
       },
       "Resource": "arn:aws:states:::aws-sdk:eventbridge:disableRule",
+      "Retry": [
+        {
+          "ErrorEquals": ["EventBridge.InternalException"],
+          "BackoffRate": 2,
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "Comment": "Handle internal event bridge exception"
+        }
+      ],
       "End": true
     },
     "For each job id in the table": {
