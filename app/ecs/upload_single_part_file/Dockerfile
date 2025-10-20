@@ -6,16 +6,16 @@ ARG WRAPICA_VERSION="2.38.0.dev20250818113956"
 ARG PYTHON_VERSION="3.12"
 
 RUN \
-  # Set the platform URL based on the TARGETPLATFORM argument
+  # Set the platform URL based on the TARGETPLATFORM argument \
   if [ "${TARGETPLATFORM#linux/}" = "arm64" ]; then \
     platform_url="aarch64";  \
   else \
     platform_url="x86_64"; \
   fi && \
- # Standard setup
+ # Standard setup \
  apt update -yq && \
  apt upgrade -yq && \
- # APT installations to build curl
+ # APT installations to build curl \
  apt install -yq \
     wget \
     tar \
@@ -24,7 +24,7 @@ RUN \
     build-essential \
     libssl-dev \
     libpsl-dev && \
-  # Download and install the latest version of curl
+  # Download and install the latest version of curl \
   wget --quiet \
     "https://github.com/curl/curl/releases/download/curl-$(echo "${CURL_VERSION}" | sed 's/\./_/g')/curl-${CURL_VERSION}.tar.gz" && \
   tar -xzf "curl-${CURL_VERSION}.tar.gz" && \
@@ -38,7 +38,7 @@ RUN \
     ldconfig \
   ) && \
   rm -rf "curl-${CURL_VERSION}" "curl-${CURL_VERSION}.tar.gz" && \
-  # Install uv
+  # Install uv \
   curl -LsSf https://astral.sh/uv/install.sh | XDG_CONFIG_HOME=/tmp UV_INSTALL_DIR=/usr/bin sh && \
   uv venv --python "${PYTHON_VERSION}" && \
   # Install wrapica \

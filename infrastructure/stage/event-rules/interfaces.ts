@@ -10,8 +10,6 @@ export type EventBridgeNameList =
   /* Listen to copy jobs on the external event bus */
   | 'listenExternalCopyJobRule'
   | 'listenExternalCopyJobLegacyRule'
-  /* Listen to ICAv2 events from the event pipe */
-  | 'listenICAv2CopyJobEventPipeRule'
   /* Schedule rule to send heartbeats */
   | 'internalHeartBeatScheduleRule'
   | 'externalHeartBeatScheduleRule';
@@ -21,7 +19,6 @@ export const eventBridgeNameList: Array<EventBridgeNameList> = [
   'listenInternalTaskTokenRule',
   'listenExternalCopyJobRule',
   'listenExternalCopyJobLegacyRule',
-  'listenICAv2CopyJobEventPipeRule',
   'internalHeartBeatScheduleRule',
   'externalHeartBeatScheduleRule',
 ];
