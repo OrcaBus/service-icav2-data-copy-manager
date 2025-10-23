@@ -1,7 +1,6 @@
 import {
   eventBridgeNameList,
   EventBridgeRuleObject,
-  EventBridgeRuleProps,
   EventBridgeRulesProps,
   ExternalEventBridgeRuleProps,
   HeartBeatEventBridgeRuleProps,
@@ -9,7 +8,7 @@ import {
 } from './interfaces';
 import { Rule } from 'aws-cdk-lib/aws-events';
 import * as events from 'aws-cdk-lib/aws-events';
-import { DEFAULT_HEART_BEAT_INTERVAL, ICA_COPY_JOB_EVENT_CODE } from '../constants';
+import { DEFAULT_HEART_BEAT_INTERVAL } from '../constants';
 import { Construct } from 'constructs';
 
 /* Event bridge rules */
@@ -87,21 +86,6 @@ function buildExternalCopyJobLegacyRule(
   });
 }
 
-function buildICAv2EventPipeRule(scope: Construct, props: EventBridgeRuleProps): Rule {
-  return new events.Rule(scope, props.ruleName, {
-    ruleName: props.ruleName,
-    eventPattern: {
-      detail: {
-        'ica-event': {
-          // ICA_JOB_001 is a job state change in ICAv2
-          eventCode: [ICA_COPY_JOB_EVENT_CODE],
-        },
-      },
-    },
-    eventBus: props.eventBus,
-  });
-}
-
 export function buildEventBridgeRules(
   scope: Construct,
   props: EventBridgeRulesProps
@@ -151,16 +135,6 @@ export function buildEventBridgeRules(
             ruleName: eventBridgeName,
             eventBus: props.externalEventBus,
             eventDetailType: props.eventDetailType,
-          }),
-        });
-        break;
-      }
-      case 'listenICAv2CopyJobEventPipeRule': {
-        eventBridgeObjects.push({
-          ruleName: eventBridgeName,
-          ruleObject: buildICAv2EventPipeRule(scope, {
-            ruleName: eventBridgeName,
-            eventBus: props.internalEventBus,
           }),
         });
         break;

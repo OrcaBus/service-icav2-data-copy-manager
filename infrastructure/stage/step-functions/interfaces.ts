@@ -69,6 +69,9 @@ export interface SfnRequirementsProps {
 
   /* Check if step function needs handle copy jobs list executions */
   needsHandleCopyJobsListExecutions?: boolean;
+
+  /* Check if the step function needs to be an express step function */
+  isExpress?: boolean;
 }
 
 export const SfnRequirementsMapType: { [key in SfnName]: SfnRequirementsProps } = {
@@ -104,6 +107,9 @@ export const SfnRequirementsMapType: { [key in SfnName]: SfnRequirementsProps } 
 
     /* Task token permissions */
     needsTaskTokenUpdatePermissions: true,
+
+    /* This comes from an sqs queue so it needs to be an internal sfn */
+    isExpress: true,
   },
   // Send heartbeat internal
   sendHeartbeatInternal: {

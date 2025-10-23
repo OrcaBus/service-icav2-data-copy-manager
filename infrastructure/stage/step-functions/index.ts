@@ -14,6 +14,8 @@ import path from 'path';
 import { STACK_PREFIX, STEP_FUNCTIONS_DIR } from '../constants';
 import { camelCaseToSnakeCase } from '../utils';
 import { Construct } from 'constructs';
+import * as awsLogs from 'aws-cdk-lib/aws-logs';
+import { RetentionDays } from 'aws-cdk-lib/aws-logs';
 
 function createStateMachineDefinitionSubstitutions(props: BuildSfnProps): {
   [key: string]: string;
@@ -290,14 +292,29 @@ function wireUpStateMachinePermissions(scope: Construct, props: WirePermissionsP
 
 function buildStepFunction(scope: Construct, props: BuildSfnProps): SfnObject {
   const sfnNameToSnakeCase = camelCaseToSnakeCase(props.stateMachineName);
+  const sfnRequirements = SfnRequirementsMapType[props.stateMachineName];
 
   /* Create the state machine definition substitutions */
   const stateMachine = new sfn.StateMachine(scope, props.stateMachineName, {
-    stateMachineName: `${STACK_PREFIX}-${props.stateMachineName}`,
+    stateMachineName: `${STACK_PREFIX}--${props.stateMachineName}`,
     definitionBody: sfn.DefinitionBody.fromFile(
       path.join(STEP_FUNCTIONS_DIR, sfnNameToSnakeCase + `_sfn_template.asl.json`)
     ),
     definitionSubstitutions: createStateMachineDefinitionSubstitutions(props),
+    stateMachineType: sfnRequirements.isExpress
+      ? sfn.StateMachineType.EXPRESS
+      : sfn.StateMachineType.STANDARD,
+    logs: sfnRequirements.isExpress
+      ? // Enable logging on the state machine for express step functions only
+        {
+          level: sfn.LogLevel.ALL,
+          // Create a new log group for the state machine
+          destination: new awsLogs.LogGroup(scope, `${props.stateMachineName}-logs`, {
+            retention: RetentionDays.ONE_DAY,
+          }),
+          includeExecutionData: true,
+        }
+      : undefined,
   });
 
   /* Grant the state machine permissions */

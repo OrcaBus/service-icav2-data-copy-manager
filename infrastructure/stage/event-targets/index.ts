@@ -34,14 +34,6 @@ function buildSfnEventBridgeTargetForScheduledEvents(props: AddSfnAsEventBridgeT
   props.eventBridgeRuleObj.addTarget(new eventsTargets.SfnStateMachine(props.stateMachineObj));
 }
 
-function buildSfnEventBridgeTargetFromIcaEventPipe(props: AddSfnAsEventBridgeTargetProps): void {
-  props.eventBridgeRuleObj.addTarget(
-    new eventsTargets.SfnStateMachine(props.stateMachineObj, {
-      input: events.RuleTargetInput.fromEventPath('$.detail.ica-event.payload'),
-    })
-  );
-}
-
 export function buildAllEventBridgeTargets(props: EventBridgeTargetsProps): void {
   /* Iterate over each event bridge rule and add the target */
   for (const eventBridgeTargetsName of eventBridgeTargetsNameList) {
@@ -87,17 +79,6 @@ export function buildAllEventBridgeTargets(props: EventBridgeTargetsProps): void
           )?.ruleObject,
           stateMachineObj: props.stepFunctionObjects.find(
             (eventBridgeObject) => eventBridgeObject.stateMachineName === 'handleCopyJobs'
-          )?.stateMachineObj,
-        });
-        break;
-      }
-      case 'iCAv2CopyJobEventPipeToSendInternalTaskTokenSfn': {
-        buildSfnEventBridgeTargetFromIcaEventPipe(<AddSfnAsEventBridgeTargetProps>{
-          eventBridgeRuleObj: props.eventBridgeRuleObjects.find(
-            (eventBridgeObject) => eventBridgeObject.ruleName === 'listenICAv2CopyJobEventPipeRule'
-          )?.ruleObject,
-          stateMachineObj: props.stepFunctionObjects.find(
-            (eventBridgeObject) => eventBridgeObject.stateMachineName === 'sendInternalTaskToken'
           )?.stateMachineObj,
         });
         break;

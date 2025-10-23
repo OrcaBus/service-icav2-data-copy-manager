@@ -30,15 +30,15 @@ export class StatefulApplicationStack extends cdk.Stack {
     });
 
     /* Event bus */
-    const internalEventBusObject = buildEventBus(this, {
+    buildEventBus(this, {
       eventBusName: props.internalEventBusName,
       eventBusDescription: props.internalEventBusDescription,
     });
 
     // Create the event pipe to join the ICA SQS queue to the event bus
     createEventBridgePipe(this, {
+      stepFunctionName: 'sendInternalTaskToken',
       icaEventPipeName: DEFAULT_EVENT_PIPE_NAME,
-      eventBusObj: internalEventBusObject,
       icaQueueName: DEFAULT_ICA_SQS_NAME,
       icaQueueVizTimeout: DEFAULT_ICA_QUEUE_VIZ_TIMEOUT,
       slackTopicArn: getTopicArnFromTopicName(props.slackTopicName),
