@@ -15,6 +15,7 @@ import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
 import { IStateMachine } from 'aws-cdk-lib/aws-stepfunctions';
 import { STACK_PREFIX } from '../constants';
 import { LogGroup } from 'aws-cdk-lib/aws-logs';
+import { Duration } from 'aws-cdk-lib';
 
 // Get the topic ARN from the topic name
 export function getTopicArnFromTopicName(topicName: string): string {
@@ -63,7 +64,10 @@ function createIcaSqsPipe(scope: Construct, props: IcaEventPipeConstructProps) {
   const logGroup = new LogGroup(scope, 'IcaEventPipeLogGroup');
 
   return new pipes.Pipe(scope, props.icaEventPipeName, {
-    source: new SqsSource(props.icaSqsQueue),
+    source: new SqsSource(props.icaSqsQueue, {
+      batchSize: 5,
+      maximumBatchingWindow: Duration.seconds(10),
+    }),
     target: new SfnTarget(stepFunctionObject, {
       inputTransformation: targetInputTransformation,
     }),
