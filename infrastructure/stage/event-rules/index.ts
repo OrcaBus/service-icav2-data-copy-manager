@@ -31,7 +31,6 @@ function buildInternalCopyJobRule(scope: Construct, props: InternalEventBridgeRu
       detail: {
         payload: {
           destinationUri: [{ exists: true }],
-          sourceUriList: [{ exists: true }],
         },
       },
     },
@@ -61,7 +60,6 @@ function buildExternalCopyJobRule(scope: Construct, props: ExternalEventBridgeRu
       detail: {
         payload: {
           destinationUri: [{ exists: true }],
-          sourceUriList: [{ exists: true }],
         },
       },
     },
@@ -79,7 +77,6 @@ function buildExternalCopyJobLegacyRule(
       detailType: [props.eventDetailType],
       detail: {
         destinationUri: [{ exists: true }],
-        sourceUriList: [{ exists: true }],
       },
     },
     eventBus: props.eventBus,
