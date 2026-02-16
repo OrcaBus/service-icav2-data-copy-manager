@@ -9,7 +9,8 @@
       "Assign": {
         "sourceUriList": "{% $states.input.payload.sourceUriList %}",
         "destinationUri": "{% $states.input.payload.destinationUri %}",
-        "taskToken": "{% $states.input.taskToken ? $states.input.taskToken : null %}"
+        "taskToken": "{% $states.input.taskToken ? $states.input.taskToken : null %}",
+        "renamingMapList": "{% $states.input.renamingMapList ? $states.input.renamingMapList : null %}"
       }
     },
     "Turn on rule": {
@@ -78,12 +79,13 @@
       "Assign": {
         "sourceDataList": "{% $states.result.Payload.sourceDataList %}",
         "destinationData": "{% $states.result.Payload.destinationData %}",
-        "recursiveCopyJobsUriList": "{% $states.result.Payload.recursiveCopyJobsUriList %}"
+        "recursiveCopyJobsUriList": "{% $states.result.Payload.recursiveCopyJobsUriList %}",
+        "externalSourceUriList": "{% $states.result.Payload.externalSourceUriList %}"
       }
     },
     "Run top level and recursive in parallel": {
       "Type": "Parallel",
-      "Next": "Send External Task Token Success",
+      "Next": "Has renaming map",
       "Branches": [
         {
           "StartAt": "Find files with single multipart uploads",
@@ -215,7 +217,8 @@
                             "Choices": [
                               {
                                 "Next": "Upload single part file (lambda)",
-                                "Condition": "{% $states.input.fileSizeInBytes < (8 * 1024 * 1024) %}"
+                                "Condition": "{% $states.input.fileSizeInBytes < (8 * 1024 * 1024) %}",
+                                "Comment": "Less than 8 MB, use a lambda to upload"
                               }
                             ],
                             "Default": "Upload Single File (ECS)"
@@ -273,18 +276,18 @@
                             "Resource": "arn:aws:states:::ecs:runTask.sync",
                             "Arguments": {
                               "LaunchType": "FARGATE",
-                              "Cluster": "${__cluster__}",
-                              "TaskDefinition": "${__task_definition__}",
+                              "Cluster": "${__upload_single_part_file_cluster__}",
+                              "TaskDefinition": "${__upload_single_part_file_task_definition__}",
                               "NetworkConfiguration": {
                                 "AwsvpcConfiguration": {
-                                  "Subnets": "{% $split('${__subnets__}', ',') %}",
-                                  "SecurityGroups": "{% [ '${__security_group__}' ] %}"
+                                  "Subnets": "{% $split('${__upload_single_part_file_subnets__}', ',') %}",
+                                  "SecurityGroups": "{% [ '${__upload_single_part_file_security_group__}' ] %}"
                                 }
                               },
                               "Overrides": {
                                 "ContainerOverrides": [
                                   {
-                                    "Name": "${__container_name__}",
+                                    "Name": "${__upload_single_part_file_container_name__}",
                                     "Environment": [
                                       {
                                         "Name": "SOURCE_PROJECT_ID",
@@ -562,8 +565,282 @@
               "MaxConcurrency": 40
             }
           }
+        },
+        {
+          "StartAt": "For each external source uri",
+          "States": {
+            "For each external source uri": {
+              "Type": "Map",
+              "ItemProcessor": {
+                "ProcessorConfig": {
+                  "Mode": "INLINE"
+                },
+                "StartAt": "Get external source file parameters",
+                "States": {
+                  "Get external source file parameters": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:states:::lambda:invoke",
+                    "Arguments": {
+                      "FunctionName": "${__get_external_source_file_metadata_lambda_function_arn__}",
+                      "Payload": {
+                        "externalSourceUri": "{% $states.input.externalSourceUriIter %}"
+                      }
+                    },
+                    "Retry": [
+                      {
+                        "ErrorEquals": [
+                          "Lambda.ServiceException",
+                          "Lambda.AWSLambdaException",
+                          "Lambda.SdkClientException",
+                          "Lambda.TooManyRequestsException"
+                        ],
+                        "IntervalSeconds": 1,
+                        "MaxAttempts": 3,
+                        "BackoffRate": 2,
+                        "JitterStrategy": "FULL"
+                      }
+                    ],
+                    "Next": "Use lambda or ECS",
+                    "Output": {
+                      "externalSourceUriIter": "{% $states.input.externalSourceUriIter %}",
+                      "destinationDataIter": "{% $states.input.destinationDataIter %}",
+                      "sourceFileSizeInBytes": "{% $states.result.Payload.sourceFileSizeInBytes %}",
+                      "isMultipartFile": "{% $states.result.Payload.isMultipartFile %}"
+                    }
+                  },
+                  "Use lambda or ECS": {
+                    "Type": "Choice",
+                    "Choices": [
+                      {
+                        "Next": "Upload from Filemanager (lambda)",
+                        "Condition": "{% $states.input.sourceFileSizeInBytes < (8 * 1024 * 1024) %}",
+                        "Comment": "Use lambda"
+                      }
+                    ],
+                    "Default": "Upload from Filemanager (ECS)"
+                  },
+                  "Upload from Filemanager (lambda)": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:states:::lambda:invoke",
+                    "Output": "{% $states.result.Payload %}",
+                    "Arguments": {
+                      "FunctionName": "${__upload_from_filemanager_lambda_function_arn__}",
+                      "Payload": {
+                        "sourceUri": "{% $states.input.externalSourceUriIter %}",
+                        "sourceFileSizeInBytes": "{% $states.input.sourceFileSizeInBytes %}",
+                        "destProjectId": "{% $states.input.destinationDataIter.projectId %}",
+                        "destDataId": "{% $states.input.destinationDataIter.dataId %}"
+                      }
+                    },
+                    "Retry": [
+                      {
+                        "ErrorEquals": [
+                          "Lambda.ServiceException",
+                          "Lambda.AWSLambdaException",
+                          "Lambda.SdkClientException",
+                          "Lambda.TooManyRequestsException"
+                        ],
+                        "IntervalSeconds": 1,
+                        "MaxAttempts": 3,
+                        "BackoffRate": 2,
+                        "JitterStrategy": "FULL"
+                      }
+                    ],
+                    "End": true
+                  },
+                  "Upload from Filemanager (ECS)": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:states:::ecs:runTask",
+                    "Arguments": {
+                      "LaunchType": "FARGATE",
+                      "Cluster": "${__upload_from_filemanager_cluster__}",
+                      "TaskDefinition": "${__upload_from_filemanager_task_definition__}",
+                      "NetworkConfiguration": {
+                        "AwsvpcConfiguration": {
+                          "Subnets": "{% $split('${__upload_from_filemanager_subnets__}', ',') %}",
+                          "SecurityGroups": "{% [ '${__upload_from_filemanager_security_group__}' ] %}"
+                        }
+                      },
+                      "Overrides": {
+                        "ContainerOverrides": [
+                          {
+                            "Name": "${__upload_from_filemanager_container_name__}",
+                            "Environment": [
+                              {
+                                "Name": "SOURCE_URI",
+                                "Value": "{% $states.input.externalSourceUriIter %}"
+                              },
+                              {
+                                "Name": "IS_MULTIPART_FILE",
+                                "Value": "{% $states.input.isMultipartFile ? 'true' : 'false' %}"
+                              },
+                              {
+                                "Name": "FILE_SIZE_IN_BYTES",
+                                "Value": "{% $states.input.sourceFileSizeInBytes %}"
+                              },
+                              {
+                                "Name": "DEST_PROJECT_ID",
+                                "Value": "{% $states.input.destinationDataIter.projectId %}"
+                              },
+                              {
+                                "Name": "DEST_DATA_ID",
+                                "Value": "{% $states.input.destinationDataIter.dataId %}"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    },
+                    "End": true
+                  }
+                }
+              },
+              "End": true,
+              "Items": "{% $externalSourceUriList %}",
+              "ItemSelector": {
+                "externalSourceUriIter": "{% $states.context.Map.Item.Value %}",
+                "destinationDataIter": "{% $destinationData %}"
+              }
+            }
+          }
         }
       ]
+    },
+    "Has renaming map": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Next": "For object in renaming map",
+          "Condition": "{% $renamingMapList ? true : false %}",
+          "Comment": "Has renaming map"
+        }
+      ],
+      "Default": "Send External Task Token Success"
+    },
+    "For object in renaming map": {
+      "Type": "Map",
+      "ItemProcessor": {
+        "ProcessorConfig": {
+          "Mode": "INLINE"
+        },
+        "StartAt": "Get renaming map parameters",
+        "States": {
+          "Get renaming map parameters": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Arguments": {
+              "FunctionName": "${__get_renaming_map_params_lambda_function_arn__}",
+              "Payload": {
+                "sourceUriList": "{% $sourceUriList %}",
+                "externalSourceUriList": "{% $externalSourceUriList %}",
+                "destinationUri": "{% $destinationUri %}",
+                "dataId": "{% $states.input.dataId ? $states.input.dataId : null %}",
+                "inputFileUri": "{% $states.input.inputFileUri ? $states.input.inputFileUri : null %}",
+                "outputFileName": "{% $states.input.outputFileName %}"
+              }
+            },
+            "Retry": [
+              {
+                "ErrorEquals": [
+                  "Lambda.ServiceException",
+                  "Lambda.AWSLambdaException",
+                  "Lambda.SdkClientException",
+                  "Lambda.TooManyRequestsException"
+                ],
+                "IntervalSeconds": 1,
+                "MaxAttempts": 3,
+                "BackoffRate": 2,
+                "JitterStrategy": "FULL"
+              }
+            ],
+            "Output": {
+              "projectId": "{% $states.result.Payload.projectId %}",
+              "inputDataId": "{% $states.result.Payload.inputUri %}",
+              "outputDataUri": "{% $states.result.Payload.outputDataUri %}",
+              "fileSizeInBytes": "{% $states.result.Payload.fileSize %}"
+            },
+            "Next": "If fileSize < 8 MB"
+          },
+          "If fileSize < 8 MB": {
+            "Type": "Choice",
+            "Choices": [
+              {
+                "Next": "Rename File (lambda)",
+                "Condition": "{% $states.input.fileSizeInBytes < (8 * 1024 * 1024) %}",
+                "Comment": "FileSize is less than 8 MB, use a lambda"
+              }
+            ],
+            "Default": "Rename File (ECS)"
+          },
+          "Rename File (lambda)": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Output": "{% $states.result.Payload %}",
+            "Arguments": {
+              "FunctionName": "${__rename_file_lambda_function_arn__}",
+              "Payload": {
+                "projectId": "{% $states.input.projectId %}",
+                "inputDataId": "{% $states.input.inputDataId %}",
+                "outputDataUri": "{% $states.input.outputDataUri %}"
+              }
+            },
+            "Retry": [
+              {
+                "ErrorEquals": [
+                  "Lambda.ServiceException",
+                  "Lambda.AWSLambdaException",
+                  "Lambda.SdkClientException",
+                  "Lambda.TooManyRequestsException"
+                ],
+                "IntervalSeconds": 1,
+                "MaxAttempts": 3,
+                "BackoffRate": 2,
+                "JitterStrategy": "FULL"
+              }
+            ],
+            "End": true
+          },
+          "Rename File (ECS)": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::ecs:runTask",
+            "Arguments": {
+              "LaunchType": "FARGATE",
+              "Cluster": "${__rename_file_cluster__}",
+              "TaskDefinition": "${__rename_file_task_definition__}",
+              "NetworkConfiguration": {
+                "AwsvpcConfiguration": {
+                  "Subnets": "{% $split('${__rename_file_subnets__}', ',') %}",
+                  "SecurityGroups": "{% [ '${__rename_file_security_group__}' ] %}"
+                }
+              },
+              "Overrides": {
+                "ContainerOverrides": [
+                  {
+                    "Name": "${__rename_file_container_name__}",
+                    "Environment": [
+                      {
+                        "Name": "PROJECT_ID",
+                        "Value": "{% $states.input.projectId %}"
+                      },
+                      {
+                        "Name": "INPUT_DATA_ID",
+                        "Value": "{% $states.input.inputDataId %}"
+                      },
+                      {
+                        "Name": "OUTPUT_DATA_URI",
+                        "Value": "{% $states.input.outputDataUri %}"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "End": true
+          }
+        }
+      },
+      "Items": "{% $renamingMapList %}",
+      "Next": "Send External Task Token Success"
     },
     "Send External Task Token Success": {
       "Type": "Task",

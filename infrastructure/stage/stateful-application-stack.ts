@@ -45,5 +45,7 @@ export class StatefulApplicationStack extends cdk.Stack {
       dlqMessageThreshold: DEFAULT_DLQ_ALARM_THRESHOLD,
       icaAwsAccountNumber: DEFAULT_ICA_AWS_ACCOUNT_NUMBER,
     });
+
+    // FIXME - build event bridge schemas
   }
 }

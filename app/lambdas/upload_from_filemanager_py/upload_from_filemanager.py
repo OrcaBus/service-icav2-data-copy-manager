@@ -1,69 +1,32 @@
 #!/usr/bin/env python3
 
 """
-Upload a single part file to S3 using the boto3 library.
+Upload a file from the OrcaBus filemanager to an ICAv2 project via a download+upload
 
-Rather than download + upload we perform the following steps:
-
-1. Get AWS credentials for the parent directory
-
-2. Get the file size of the file to be uploaded
-
-3. Generate a presigned URL for the file to be downloaded
-
-4. Create a temp shell script with the following template:
-
-'
-#!/usr/bin/env bash
-
-set -euo pipefail
-
-wget \
- --quiet \
- --output-document /dev/stdout \
- "{__PRESIGNED_URL__}" | \
-aws s3 cp --expected-size "${__FILE_SIZE_IN_BYTES__}" - "${__DESTINATION_PATH__}"
-'
-
-We then run the shell script through subprocess.run with the following environment variables set
-
-1. AWS_ACCESS_KEY_ID - the access key id for this destination path
-2. AWS_SECRET_ACCESS_KEY - the secret access key for this destination path
-3. AWS_SESSION_TOKEN - the session token for this destination path
-
-We take in the following inputs:
-
-{
-    "sourceData": {
-      "projectId": "abcdefghijklmnop",
-      "dataId": "fil.abcdefghijklmnop",
-    }
-    "destinationData": {
-      "projectId": "abcdefghijklmnop",
-      "dataId": "fil.abcdefghijklmnop",
-    }
-}
+External data is managed by the filemanager
 """
 
-# Standard library imports
+# Standard imports
 from pathlib import Path
-from textwrap import dedent
-from tempfile import NamedTemporaryFile
 from subprocess import run
+from tempfile import NamedTemporaryFile
+from textwrap import dedent
 from time import sleep
 
 # Layer imports
 from icav2_tools import set_icav2_env_vars
+from orcabus_api_tools.filemanager import (
+    get_s3_object_id_from_s3_uri,
+    get_presigned_url
+)
 
-# Wrapica imports
 from wrapica.project_data import (
-    create_download_url,
     get_project_data_obj_by_id,
     get_project_data_obj_from_project_id_and_path,
-    create_file_with_upload_url, delete_project_data
+    delete_project_data,
+    create_file_with_upload_url
 )
 from wrapica.utils.globals import FILE_DATA_TYPE
-
 
 # Globals
 POST_DELETION_WAIT_TIME = 5  # seconds
@@ -144,28 +107,32 @@ def handler(event, context):
     """
     set_icav2_env_vars()
 
-    # Get the source file object
-    source_object = get_project_data_obj_by_id(
-        project_id=event["sourceData"]["projectId"],
-        data_id=event["sourceData"]["dataId"]
-    )
-    # Get the destination folder object
-    destination_folder_object = get_project_data_obj_by_id(
-        project_id=event["destinationData"]["projectId"],
-        data_id=event["destinationData"]["dataId"]
+    # Source args
+    source_uri = event['sourceUri']
+
+    # Source file size
+    source_file_size_in_bytes = event['sourceFileSizeInBytes']
+
+    # Dest args
+    dest_project_id = event['destProjectId']
+    dest_data_id = event['destDataId']
+
+    # Use the filemanager to get the presigned url of the source uri file
+    source_file_download_url = get_presigned_url(
+        s3_object_id=get_s3_object_id_from_s3_uri(source_uri)
     )
 
-    # Create the source file download url
-    source_file_download_url = create_download_url(
-        project_id=source_object.project_id,
-        file_id=source_object.data.id,
+    # Get the destination folder object
+    destination_folder_object = get_project_data_obj_by_id(
+        project_id=dest_project_id,
+        data_id=dest_data_id,
     )
 
     # Check if the destination file exists
     try:
         existing_project_data_obj = get_project_data_obj_from_project_id_and_path(
             project_id=destination_folder_object.project_id,
-            data_path=Path(destination_folder_object.data.details.path) / source_object.data.details.name,
+            data_path=Path(destination_folder_object.data.details.path) / Path(source_uri).name,
             data_type=FILE_DATA_TYPE
         )
         # If we have a partial file, we can delete it and re-upload
@@ -177,7 +144,7 @@ def handler(event, context):
             )
             # Wait for the db to catch up
             sleep(POST_DELETION_WAIT_TIME)
-        elif existing_project_data_obj.data.details.file_size_in_bytes == source_object.data.details.file_size_in_bytes:
+        elif existing_project_data_obj.data.details.file_size_in_bytes == source_file_size_in_bytes:
             # If the file sizes match, we can skip the upload
             # Check the file sizes match
             return
@@ -194,7 +161,7 @@ def handler(event, context):
     destination_file_upload_url = create_file_with_upload_url(
         project_id=destination_folder_object.project_id,
         folder_id=destination_folder_object.data.id,
-        file_name=source_object.data.details.name
+        file_name=Path(source_uri).name,
     )
 
     # Get the shell script

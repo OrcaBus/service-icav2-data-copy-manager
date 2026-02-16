@@ -10,6 +10,9 @@ export class StatefulDeployStack extends cdk.Stack {
     super(scope, id, props);
 
     new DeploymentStackPipeline(this, 'Icav2DataCopyManagerStatefulDeploymentPipeline', {
+      unitAppTestConfig: {
+        command: [],
+      },
       githubBranch: 'main',
       githubRepo: REPO_NAME,
       stack: StatefulApplicationStack,

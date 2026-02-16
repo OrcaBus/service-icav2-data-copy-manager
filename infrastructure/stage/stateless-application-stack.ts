@@ -19,7 +19,7 @@ import { buildEventBridgeRules } from './event-rules';
 import { buildAllStepFunctions } from './step-functions';
 import { buildAllEventBridgeTargets } from './event-targets';
 import { StageName } from '@orcabus/platform-cdk-constructs/shared-config/accounts';
-import { buildUploadSinglePartFileFargateTask } from './ecs';
+import { buildAllEcsFargateTasks } from './ecs';
 
 export type StatelessApplicationStackProps = StatelessApplicationStackConfig & cdk.StackProps;
 
@@ -52,6 +52,18 @@ export class StatelessApplicationStack extends cdk.Stack {
       props.icav2AccessTokenSecretId
     );
 
+    const orcabusTokenSecretObj = secretsManager.Secret.fromSecretNameV2(
+      this,
+      props.orcabusTokenSecretId,
+      props.orcabusTokenSecretId
+    );
+
+    const hostnameSsmParameter = cdk.aws_ssm.StringParameter.fromStringParameterName(
+      this,
+      props.hostnameSsmParameterName,
+      props.hostnameSsmParameterName
+    );
+
     // Build the lambdas
     const lambdaObjects = buildAllLambdas(this);
 
@@ -67,8 +79,10 @@ export class StatelessApplicationStack extends cdk.Stack {
     });
 
     // Part 2 - Build ECS Tasks / Fargate Clusters
-    const uploadSinglePartFileFargateTaskObj = buildUploadSinglePartFileFargateTask(this, {
+    const ecsFargateTasks = buildAllEcsFargateTasks(this, {
       icav2AccessTokenSecretObj: icav2AccessTokenSecretObj,
+      orcabusTokenSecretObj: orcabusTokenSecretObj,
+      hostnameSsmParameter: hostnameSsmParameter,
     });
 
     // Build the step functions
@@ -78,7 +92,7 @@ export class StatelessApplicationStack extends cdk.Stack {
       icav2CopyServiceEventSource: props.eventSource,
       icav2CopyServiceDetailType: props.eventDetailType,
       tableObj: dynamodbTable,
-      uploadSinglePartFileEcsFargateObject: uploadSinglePartFileFargateTaskObj,
+      ecsFargateTaskObjects: ecsFargateTasks,
       internalHeartBeatRuleName: DEFAULT_HEART_BEAT_INTERNAL_EVENT_BRIDGE_RULE_NAME,
       externalHeartBeatRuleName: DEFAULT_HEART_BEAT_EXTERNAL_EVENT_BRIDGE_RULE_NAME,
     });

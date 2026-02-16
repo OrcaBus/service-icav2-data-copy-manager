@@ -11,6 +11,10 @@ import {
 } from './constants';
 import { StatefulApplicationStackConfig, StatelessApplicationStackConfig } from './interfaces';
 import { StageName } from '@orcabus/platform-cdk-constructs/shared-config/accounts';
+import {
+  DEFAULT_HOSTNAME_SSM_PARAMETER,
+  DEFAULT_ORCABUS_TOKEN_SECRET_ID,
+} from '@orcabus/platform-cdk-constructs/lambda/config';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const getStatefulStackProps = (stage: StageName): StatefulApplicationStackConfig => {
@@ -37,6 +41,8 @@ export const getStatelessStackProps = (stage: StageName): StatelessApplicationSt
 
     /* Secrets */
     icav2AccessTokenSecretId: ICAV2_ACCESS_TOKEN_SECRET_ID[stage],
+    orcabusTokenSecretId: DEFAULT_ORCABUS_TOKEN_SECRET_ID,
+    hostnameSsmParameterName: DEFAULT_HOSTNAME_SSM_PARAMETER,
 
     /* Event stuff */
     internalEventBusName: EVENT_BUS_NAME_INTERNAL,

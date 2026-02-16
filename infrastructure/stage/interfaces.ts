@@ -4,6 +4,7 @@ import { StageName } from '@orcabus/platform-cdk-constructs/shared-config/accoun
 
 /** Application Interfaces **/
 
+/** Stateful interfaces **/
 export interface StatefulApplicationStackConfig extends cdk.StackProps {
   /* Dynamodb */
   tableName: string;
@@ -17,6 +18,7 @@ export interface StatefulApplicationStackConfig extends cdk.StackProps {
   slackTopicName: string;
 }
 
+/** Stateless interfaces **/
 export interface StatelessApplicationStackConfig extends cdk.StackProps {
   /* Stage Name */
   stageName: StageName;
@@ -25,6 +27,8 @@ export interface StatelessApplicationStackConfig extends cdk.StackProps {
 
   /* ICAv2 access token secret name */
   icav2AccessTokenSecretId: string;
+  orcabusTokenSecretId: string;
+  hostnameSsmParameterName: string;
 
   /* Event stuff */
   externalEventBusName: string;
@@ -35,7 +39,3 @@ export interface StatelessApplicationStackConfig extends cdk.StackProps {
   /* Additional event stuff */
   icaEventPipeName: string;
 }
-
-/** Stateful interfaces **/
-
-/** Stateless interfaces **/

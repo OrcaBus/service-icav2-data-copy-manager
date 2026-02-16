@@ -18,11 +18,15 @@ Rather than download + upload we perform the following steps:
 
 set -euo pipefail
 
-wget \
- --quiet \
- --output-document /dev/stdout \
- "{__PRESIGNED_URL__}" | \
-aws s3 cp --expected-size "${__FILE_SIZE_IN_BYTES__}" - "${__DESTINATION_PATH__}"
+curl \
+  --fail-with-body --silent --show-error --location \
+  --request GET \
+  --url "__DOWNLOAD_PRESIGNED_URL__" | \
+curl --fail-with-body --silent --show-error --location \
+  --request PUT \
+  --header 'Content-Type: application/octet-stream' \
+  --data-binary "@-" \
+  --url "__UPLOAD_PRESIGNED_URL__"
 '
 
 We then run the shell script through subprocess.run with the following environment variables set
@@ -65,6 +69,7 @@ from wrapica.utils.globals import FILE_DATA_TYPE
 
 # Globals
 POST_DELETION_WAIT_TIME = 5  # seconds, time to wait after deleting a file before trying to upload again
+
 
 def get_shell_script_template() -> str:
     return dedent(

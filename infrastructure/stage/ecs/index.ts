@@ -6,25 +6,21 @@ import { Construct } from 'constructs';
 import {
   CPU_ARCHITECTURE_MAP,
   EcsFargateTaskConstruct,
-  FargateEcsTaskConstructProps,
 } from '@orcabus/platform-cdk-constructs/ecs';
 import * as path from 'path';
 import { ECS_DIR } from '../constants';
-import { BuildUploadSinglePartFileFargateEcsProps } from './interfaces';
+import {
+  BuildAllFargateEcsTasksProps,
+  BuildFargateEcsTaskProps,
+  ecsTaskNameList,
+  EcsTaskObject,
+} from './interfaces';
 import { NagSuppressions } from 'cdk-nag';
 import { ICAV2_BASE_URL } from '@orcabus/platform-cdk-constructs/shared-config/icav2';
+import { camelCaseToSnakeCase } from '../utils';
+import { lambdaNameList, LambdaObject } from '../lambda/interfaces';
 
-function buildEcsFargateTask(scope: Construct, id: string, props: FargateEcsTaskConstructProps) {
-  /*
-    Generate an ECS Fargate task construct with the provided properties.
-    */
-  return new EcsFargateTaskConstruct(scope, id, props);
-}
-
-export function buildUploadSinglePartFileFargateTask(
-  scope: Construct,
-  props: BuildUploadSinglePartFileFargateEcsProps
-): EcsFargateTaskConstruct {
+function buildEcsFargateTask(scope: Construct, props: BuildFargateEcsTaskProps) {
   /*
     Build the Upload SinglePart File Fargate task.
 
@@ -34,9 +30,13 @@ export function buildUploadSinglePartFileFargateTask(
     and the docker path can be found under ECS_DIR / 'ora_decompression'
     */
 
-  const ecsTask = buildEcsFargateTask(scope, 'UploadSinglePartFileFargateTask', {
-    containerName: 'upload-single-part-file-task',
-    dockerPath: path.join(ECS_DIR, 'upload_single_part_file'),
+  /*
+  Generate an ECS Fargate task construct with the provided properties.
+  */
+
+  const ecsTask = new EcsFargateTaskConstruct(scope, `${props.taskName}-ecs`, {
+    containerName: props.taskName,
+    dockerPath: path.join(ECS_DIR, camelCaseToSnakeCase(props.taskName)),
     nCpus: 2, // 2 CPUs
     memoryLimitGiB: 16, // 16 GB of memory (maximum for 2 CPUs)
     architecture: 'ARM64',
@@ -51,6 +51,16 @@ export function buildUploadSinglePartFileFargateTask(
     props.icav2AccessTokenSecretObj.secretName
   );
   ecsTask.containerDefinition.addEnvironment('ICAV2_BASE_URL', ICAV2_BASE_URL);
+
+  // Needs access to ORCABUS_TOKEN_SECRET_ID and HOSTNAME_SSM_PARAMETER_NAME
+  ecsTask.containerDefinition.addEnvironment(
+    'ORCABUS_TOKEN_SECRET_ID',
+    props.orcabusTokenSecretObj.secretName
+  );
+  ecsTask.containerDefinition.addEnvironment(
+    'HOSTNAME_SSM_PARAMETER_NAME',
+    props.hostnameSsmParameter.parameterName
+  );
 
   // Add suppressions for the task role
   // Since the task role needs to access the S3 bucket prefix
@@ -75,5 +85,26 @@ export function buildUploadSinglePartFileFargateTask(
     true
   );
 
-  return ecsTask;
+  return {
+    taskName: props.taskName,
+    ecsFargateTaskConstruct: ecsTask,
+  };
+}
+
+export function buildAllEcsFargateTasks(
+  scope: Construct,
+  props: BuildAllFargateEcsTasksProps
+): EcsTaskObject[] {
+  // Iterate over lambdaLayerToMapping and create the lambda functions
+  const ecsTaskObjects: EcsTaskObject[] = [];
+  for (const ecsTaskName of ecsTaskNameList) {
+    ecsTaskObjects.push(
+      buildEcsFargateTask(scope, {
+        ...props,
+        taskName: ecsTaskName,
+      })
+    );
+  }
+
+  return ecsTaskObjects;
 }
