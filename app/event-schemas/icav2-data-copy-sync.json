@@ -70,11 +70,12 @@
               "type": "array",
               "contains": {
                 "type": "string",
-                "minumum": 1
+                "minimum": 1
               },
               "items": {
                 "type": "string",
-                "allOf": [{ "$ref": "#/$defs/isUri" }]
+                "minLength": 1,
+                "$ref": "#/$defs/isUri"
               }
             },
             "destinationUri": {
@@ -85,6 +86,14 @@
               "type": "array",
               "items": {
                 "$ref": "#/$defs/renamingMapObject"
+              }
+            },
+            "externalSourceUriList": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "$ref": "#/$defs/isUri"
               }
             }
           },
