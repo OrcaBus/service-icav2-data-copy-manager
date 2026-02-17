@@ -68,15 +68,12 @@
           "properties": {
             "sourceUriList": {
               "type": "array",
-              "contains": {
-                "type": "string",
-                "minimum": 1
-              },
               "items": {
                 "type": "string",
                 "minLength": 1,
                 "$ref": "#/$defs/isUri"
-              }
+              },
+              "minItems": 1
             },
             "destinationUri": {
               "type": "string",
