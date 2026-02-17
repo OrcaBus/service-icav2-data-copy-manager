@@ -85,7 +85,7 @@ def get_presigned_url_from_filemanager_uri(filemanager_uri: str) -> str:
     """
     filemanager_uri_obj = urlparse(filemanager_uri)
     get_obj_req = requests.get(
-        url=f"file.{environ[HOSTNAME_ENV_VAR]}/api/v1/s3",
+        url=f"https://file.{environ[HOSTNAME_ENV_VAR]}/api/v1/s3",
         headers={
             "Accept": "application/json",
             "Authorization": f"Bearer {environ[ORCABUS_TOKEN_ENV_VAR]}"
@@ -100,7 +100,7 @@ def get_presigned_url_from_filemanager_uri(filemanager_uri: str) -> str:
     object_id = get_obj_req.json()['results'][0]['s3ObjectId']
 
     presign_req = requests.get(
-        url=f"file.{environ['HOSTNAME']}/api/v1/s3/presign/{object_id}",
+        url=f"https://file.{environ[HOSTNAME_ENV_VAR]}/api/v1/s3/presign/{object_id}",
         params={
             'responseContentDisposition': 'inline'
         }
@@ -154,7 +154,7 @@ def get_shell_script_template_for_multipart_file() -> str:
           --request GET \
           --url "__DOWNLOAD_PRESIGNED_URL__" | \
         aws s3 cp - \
-          --expected-size "__FILE_SIZE_IN_BYTES__"
+          --expected-size "__FILE_SIZE_IN_BYTES__" \
           "__DESTINATION_S3_PATH__"
         """
     )
@@ -197,7 +197,7 @@ def generate_multi_part_shell_script(
     # Write the shell script to the temp file
     with open(temp_file_path, "w") as temp_file_h:
         temp_file_h.write(
-            get_shell_script_template_for_single_part_file().replace(
+            get_shell_script_template_for_multipart_file().replace(
                 "__DOWNLOAD_PRESIGNED_URL__", source_presigned_url
             ).replace(
                 "__DESTINATION_S3_PATH__", destination_file_s3_path

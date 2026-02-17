@@ -119,6 +119,7 @@ def get_shell_script_template_for_multipart_file() -> str:
 def generate_single_part_shell_script(
         source_file_download_url: str,
         destination_file_upload_url: str,
+        source_file_s3_path: str,
 ):
     # Create a temp file
     temp_file_path = NamedTemporaryFile(
@@ -133,6 +134,8 @@ def generate_single_part_shell_script(
                 "__DOWNLOAD_PRESIGNED_URL__", source_file_download_url
             ).replace(
                 "__UPLOAD_PRESIGNED_URL__", destination_file_upload_url
+            ).replace(
+                "__SOURCE_S3_PATH__", source_file_s3_path
             ) + "\n"
         )
 
@@ -152,7 +155,7 @@ def generate_multi_part_shell_script(
     # Write the shell script to the temp file
     with open(temp_file_path, "w") as temp_file_h:
         temp_file_h.write(
-            get_shell_script_template_for_single_part_file().replace(
+            get_shell_script_template_for_multipart_file().replace(
                 "__SOURCE_S3_PATH__", source_file_s3_path
             ).replace(
                 "__DESTINATION_S3_PATH__", destination_file_s3_path
@@ -322,8 +325,11 @@ def main():
 
         # Get the shell script
         shell_script_path = generate_single_part_shell_script(
-            source_file_download_url,
-            destination_file_upload_url
+            source_file_download_url=source_file_download_url,
+            destination_file_upload_url=destination_file_upload_url,
+            source_file_s3_path=convert_project_data_obj_to_s3_uri(
+                source_object
+            )
         )
 
         # Run the shell script

@@ -10,7 +10,7 @@ echo_stderr(){
 # Confirm the following environment variables are set
 # ICAV2_ACCESS_TOKEN_SECRET_ID
 # PROJECT_ID
-# DATA_ID
+# INPUT_DATA_ID
 # OUTPUT_DATA_URI
 
 if [[ -z "${ICAV2_ACCESS_TOKEN_SECRET_ID:-}" ]]; then
