@@ -7,7 +7,6 @@ import {
   LambdaObject,
   lambdaToRequirementsMap,
 } from './interfaces';
-import { NagSuppressions } from 'cdk-nag';
 import { Duration } from 'aws-cdk-lib';
 
 import * as lambda from 'aws-cdk-lib/aws-lambda';
@@ -21,9 +20,9 @@ function buildLambda(scope: Construct, props: BuildLambdaProps): LambdaObject {
   const lambdaRequirements = lambdaToRequirementsMap[props.lambdaName];
 
   // Create the lambda function
-  const lambdaFunction = new PythonUvFunction(scope, props.lambdaName, {
+  const lambdaFunction = new PythonUvFunction(scope, `${props.lambdaName}-lambda`, {
     entry: path.join(LAMBDA_DIR, lambdaNameToSnakeCase + '_py'),
-    runtime: lambda.Runtime.PYTHON_3_12,
+    runtime: lambda.Runtime.PYTHON_3_14,
     architecture: lambda.Architecture.ARM_64,
     index: lambdaNameToSnakeCase + '.py',
     handler: 'handler',
@@ -31,19 +30,6 @@ function buildLambda(scope: Construct, props: BuildLambdaProps): LambdaObject {
     memorySize: 2048, // 2GB
     includeIcav2Layer: lambdaRequirements.needsIcav2AccessToken,
   });
-
-  // AwsSolutions-L1 - We'll migrate to PYTHON_3_13 ASAP, soz
-  // AwsSolutions-IAM4 - We need to add this for the lambda to work
-  NagSuppressions.addResourceSuppressions(
-    lambdaFunction,
-    [
-      {
-        id: 'AwsSolutions-L1',
-        reason: 'Will migrate to PYTHON_3_13 ASAP, soz',
-      },
-    ],
-    true
-  );
 
   /* Return the function */
   return {

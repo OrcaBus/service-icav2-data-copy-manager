@@ -4,7 +4,7 @@ import { LambdaName, LambdaObject } from '../lambda/interfaces';
 import { EventBridgeNameList } from '../event-rules/interfaces';
 import { IEventBus } from 'aws-cdk-lib/aws-events';
 import { ITableV2 } from 'aws-cdk-lib/aws-dynamodb';
-import { EcsFargateTaskConstruct } from '@orcabus/platform-cdk-constructs/ecs';
+import { EcsTaskObject } from '../ecs/interfaces';
 
 export type SfnName =
   | 'handleCopyJobs'
@@ -32,12 +32,16 @@ export interface SfnObject extends SfnProps {
 }
 
 export const HandleCopyJobsLambdaList: LambdaName[] = [
-  'generateCopyJobList',
-  'launchIcav2Copy',
-  'findSinglePartFiles',
   'convertSourceUriFolderToUriList',
-  'uploadSinglePartFile',
+  'findSinglePartFiles',
+  'generateCopyJobList',
+  'getExternalSourceFileMetadata',
+  'getRenamingMapParams',
   'getSourceFileSize',
+  'launchIcav2Copy',
+  'renameFile',
+  'uploadFromFilemanager',
+  'uploadSinglePartFile',
 ];
 
 export const SendHeartbeatInternalJobsLambdaList: LambdaName[] = ['checkJobStatus'];
@@ -163,7 +167,7 @@ export interface BuildSfnProps extends SfnProps {
   icav2CopyServiceDetailType?: string;
 
   /* ECS Stuff */
-  uploadSinglePartFileEcsFargateObject: EcsFargateTaskConstruct;
+  ecsFargateTaskObjects: EcsTaskObject[];
 
   /* Table stuff */
   tableObj?: ITableV2;

@@ -23,7 +23,8 @@ RUN \
     unzip \
     build-essential \
     libssl-dev \
-    libpsl-dev && \
+    libpsl-dev \
+    rclone && \
   # Download and install the latest version of curl \
   wget --quiet \
     "https://github.com/curl/curl/releases/download/curl-$(echo "${CURL_VERSION}" | sed 's/\./_/g')/curl-${CURL_VERSION}.tar.gz" && \
@@ -43,7 +44,6 @@ RUN \
   uv venv --python "${PYTHON_VERSION}" && \
   # Install wrapica \
   # Use --extra-index-url "https://test.pypi.org/simple" when testing new versions of wrapica \
-  # Install wrapica \
   uv pip install \
     --index-url "https://pypi.org/simple" \
     --index-strategy unsafe-best-match \

@@ -43,10 +43,10 @@ RUN \
   uv venv --python "${PYTHON_VERSION}" && \
   # Install wrapica \
   # Use --extra-index-url "https://test.pypi.org/simple" when testing new versions of wrapica \
-  # Install wrapica \
   uv pip install \
     --index-url "https://pypi.org/simple" \
     --index-strategy unsafe-best-match \
+    requests \
     wrapica=="${WRAPICA_VERSION}" && \
   # Install the aws cli \
   ( \
@@ -58,7 +58,6 @@ RUN \
       ./aws/install && \
       rm -rf "awscliv2.zip" "aws" \
   )
-
 
 # Install entrypoint script
 COPY docker-entrypoint.sh "docker-entrypoint.sh"

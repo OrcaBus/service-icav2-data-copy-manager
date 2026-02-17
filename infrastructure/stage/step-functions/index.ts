@@ -37,18 +37,21 @@ function createStateMachineDefinitionSubstitutions(props: BuildSfnProps): {
 
   /* Needs Ecs permissions */
   if (sfnRequirements.needsEcsPermissions) {
-    definitionSubstitutions['__cluster__'] =
-      props.uploadSinglePartFileEcsFargateObject.cluster.clusterArn;
-    definitionSubstitutions['__task_definition__'] =
-      props.uploadSinglePartFileEcsFargateObject.taskDefinition.taskDefinitionArn;
-    definitionSubstitutions['__subnets__'] =
-      props.uploadSinglePartFileEcsFargateObject.cluster.vpc.privateSubnets
-        .map((subnet) => subnet.subnetId)
-        .join(',');
-    definitionSubstitutions['__security_group__'] =
-      props.uploadSinglePartFileEcsFargateObject.securityGroup.securityGroupId;
-    definitionSubstitutions['__container_name__'] =
-      props.uploadSinglePartFileEcsFargateObject.containerDefinition.containerName;
+    for (const ecsTask of props.ecsFargateTaskObjects) {
+      const taskNameSnakeCase = camelCaseToSnakeCase(ecsTask.taskName);
+      definitionSubstitutions[`${taskNameSnakeCase}_cluster__`] =
+        ecsTask.ecsFargateTaskConstruct.cluster.clusterArn;
+      definitionSubstitutions[`${taskNameSnakeCase}_task_definition__`] =
+        ecsTask.ecsFargateTaskConstruct.taskDefinition.taskDefinitionArn;
+      definitionSubstitutions[`${taskNameSnakeCase}_subnets__`] =
+        ecsTask.ecsFargateTaskConstruct.cluster.vpc.privateSubnets
+          .map((subnet) => subnet.subnetId)
+          .join(',');
+      definitionSubstitutions[`${taskNameSnakeCase}_security_group__`] =
+        ecsTask.ecsFargateTaskConstruct.securityGroup.securityGroupId;
+      definitionSubstitutions[`${taskNameSnakeCase}_container_name__`] =
+        ecsTask.ecsFargateTaskConstruct.containerDefinition.containerName;
+    }
   }
 
   /* Substitute the event bus in the state machine definition */
@@ -109,7 +112,9 @@ function wireUpStateMachinePermissions(scope: Construct, props: WirePermissionsP
 
   /* Grant invoke on the fargate upload single file task */
   if (sfnRequirements.needsEcsPermissions) {
-    props.uploadSinglePartFileEcsFargateObject.taskDefinition.grantRun(props.stateMachineObj);
+    for (const ecsTask of props.ecsFargateTaskObjects) {
+      ecsTask.ecsFargateTaskConstruct.taskDefinition.grantRun(props.stateMachineObj);
+    }
 
     /* Grant the state machine access to monitor the tasks */
     props.stateMachineObj.addToRolePolicy(

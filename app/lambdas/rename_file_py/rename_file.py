@@ -1,48 +1,9 @@
 #!/usr/bin/env python3
 
 """
-Upload a single part file to S3 using the boto3 library.
-
-Rather than download + upload we perform the following steps:
-
-1. Get AWS credentials for the parent directory
-
-2. Get the file size of the file to be uploaded
-
-3. Generate a presigned URL for the file to be downloaded
-
-4. Create a temp shell script with the following template:
-
-'
-#!/usr/bin/env bash
-
-set -euo pipefail
-
-wget \
- --quiet \
- --output-document /dev/stdout \
- "{__PRESIGNED_URL__}" | \
-aws s3 cp --expected-size "${__FILE_SIZE_IN_BYTES__}" - "${__DESTINATION_PATH__}"
-'
-
-We then run the shell script through subprocess.run with the following environment variables set
-
-1. AWS_ACCESS_KEY_ID - the access key id for this destination path
-2. AWS_SECRET_ACCESS_KEY - the secret access key for this destination path
-3. AWS_SESSION_TOKEN - the session token for this destination path
-
-We take in the following inputs:
-
-{
-    "sourceData": {
-      "projectId": "abcdefghijklmnop",
-      "dataId": "fil.abcdefghijklmnop",
-    }
-    "destinationData": {
-      "projectId": "abcdefghijklmnop",
-      "dataId": "fil.abcdefghijklmnop",
-    }
-}
+Rename a file by downloading it from the source uri and then uploading it to the destination uri with the new name.
+This is done by generating a shell script that uses curl to download the file and then upload it to the new location with the new name.
+The shell script is then executed and the file is renamed in place without needing to download it to the local machine first.
 """
 
 # Standard library imports
@@ -51,6 +12,8 @@ from textwrap import dedent
 from tempfile import NamedTemporaryFile
 from subprocess import run
 from time import sleep
+from os import environ
+from urllib.parse import urlparse
 
 # Layer imports
 from icav2_tools import set_icav2_env_vars
@@ -60,7 +23,7 @@ from wrapica.project_data import (
     create_download_url,
     get_project_data_obj_by_id,
     get_project_data_obj_from_project_id_and_path,
-    create_file_with_upload_url, delete_project_data
+    create_file_with_upload_url, delete_project_data,
 )
 from wrapica.utils.globals import FILE_DATA_TYPE
 
@@ -74,15 +37,26 @@ def get_shell_script_template() -> str:
         """
         #!/usr/bin/env bash
 
+        # Set to fail if any command fails, if any variable is unset, and to fail if any command in a pipeline fails
         set -euo pipefail
 
+        # Download + upload
+        # Then delete the original via the ICAv2 API
+        (
+            curl --location \
+             "__DOWNLOAD_PRESIGNED_URL__" | \
+            curl --location \
+              --request PUT \
+              --header 'Content-Type: application/octet-stream' \
+              --data-binary "@-" \
+              "__UPLOAD_PRESIGNED_URL__"
+        ) && \
         curl --location \
-         "__DOWNLOAD_PRESIGNED_URL__" | \
-        curl --location \
-          --request PUT \
-          --header 'Content-Type: application/octet-stream' \
-          --data-binary "@-" \
-          "__UPLOAD_PRESIGNED_URL__"
+          --request 'POST' \
+          --header 'Accept: application/vnd.illumina.v3+json' \
+          --header 'Authorization: Bearer __ICAV2_ACCESS_TOKEN__' \
+          --data '' \
+          '__ICAV2_BASE_URL__/api/projects/__PROJECT_ID__/data/__DATA_ID__:delete'
         """
     )
 
@@ -90,6 +64,10 @@ def get_shell_script_template() -> str:
 def generate_shell_script(
         source_file_download_url: str,
         destination_file_upload_url: str,
+        icav2_base_url: str,
+        icav2_access_token: str,
+        project_id: str,
+        data_id: str,
 ):
     # Create a temp file
     temp_file_path = NamedTemporaryFile(
@@ -104,6 +82,14 @@ def generate_shell_script(
                 "__DOWNLOAD_PRESIGNED_URL__", source_file_download_url
             ).replace(
                 "__UPLOAD_PRESIGNED_URL__", destination_file_upload_url
+            ).replace(
+                "__ICAV2_BASE_URL__", icav2_base_url
+            ).replace(
+                "__ICAV2_ACCESS_TOKEN__", icav2_access_token
+            ).replace(
+                "__PROJECT_ID__", project_id
+            ).replace(
+                "__DATA_ID__", data_id
             ) + "\n"
         )
 
@@ -146,14 +132,17 @@ def handler(event, context):
 
     # Get the source file object
     source_object = get_project_data_obj_by_id(
-        project_id=event["sourceData"]["projectId"],
-        data_id=event["sourceData"]["dataId"]
+        project_id=event["projectId"],
+        data_id=event["inputDataId"]
     )
     # Get the destination folder object
-    destination_folder_object = get_project_data_obj_by_id(
-        project_id=event["destinationData"]["projectId"],
-        data_id=event["destinationData"]["dataId"]
+    output_data_url_obj = urlparse(event['outputDataUri'])
+    destination_folder_object = get_project_data_obj_from_project_id_and_path(
+        project_id=output_data_url_obj.netloc,
+        data_path=Path(output_data_url_obj.path).parent,
+        data_type="FOLDER"
     )
+    output_file_name = Path(output_data_url_obj.path).name
 
     # Create the source file download url
     source_file_download_url = create_download_url(
@@ -189,18 +178,22 @@ def handler(event, context):
 
     except FileNotFoundError:
         pass
-
     # Create the file object
     destination_file_upload_url = create_file_with_upload_url(
         project_id=destination_folder_object.project_id,
         folder_id=destination_folder_object.data.id,
-        file_name=source_object.data.details.name
+        file_name=output_file_name
     )
 
     # Get the shell script
     shell_script_path = generate_shell_script(
-        source_file_download_url,
-        destination_file_upload_url
+        source_file_download_url=source_file_download_url,
+        destination_file_upload_url=destination_file_upload_url,
+        # Set when set_icav2_env_vars is called
+        icav2_base_url=environ['ICAV2_BASE_URL'],
+        icav2_access_token=environ['ICAV2_ACCESS_TOKEN'],
+        project_id=str(source_object.project_id),
+        data_id=source_object.data.id,
     )
 
     # Run the shell script
