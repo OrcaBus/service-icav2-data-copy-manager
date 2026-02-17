@@ -3,9 +3,47 @@
   "$defs": {
     "isUri": {
       "pattern": "^(icav2|s3)://[a-zA-Z0-9_-]*/[a-zA-Z0-9_/-]*"
+    },
+    "renamingMapObjectInput": {
+      "type": "object",
+      "oneOf": [
+        {
+          "properties": {
+            "sourceUri": {
+              "$ref": "#/$defs/isUri"
+            }
+          },
+          "required": ["sourceUri"]
+        },
+        {
+          "properties": {
+            "dataId": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["dataId"]
+        }
+      ]
+    },
+    "renamingMapObjectOutput": {
+      "type": "object",
+      "properties": {
+        "outputFileName": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["outputFileName"]
+    },
+    "renamingMapObject": {
+      "allOf": [
+        { "$ref": "#/$defs/renamingMapObjectInput" },
+        { "$ref": "#/$defs/renamingMapObjectOutput" }
+      ]
     }
   },
-  "description": "icav2-data-copy-sync Exteranl Event",
+  "description": "icav2-data-copy-sync External Event",
   "type": "object",
   "properties": {
     "EventBusName": {
@@ -42,6 +80,12 @@
             "destinationUri": {
               "type": "string",
               "minLength": 1
+            },
+            "renamingMapList": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/renamingMapObject"
+              }
             }
           },
           "required": ["sourceUriList", "destinationUri"]

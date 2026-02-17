@@ -10,7 +10,7 @@
         "sourceUriList": "{% $states.input.payload.sourceUriList %}",
         "destinationUri": "{% $states.input.payload.destinationUri %}",
         "taskToken": "{% $states.input.taskToken ? $states.input.taskToken : null %}",
-        "renamingMapList": "{% $states.input.renamingMapList ? $states.input.renamingMapList : null %}"
+        "renamingMapList": "{% $states.input.payload.renamingMapList ? $states.input.payload.renamingMapList : null %}"
       }
     },
     "Turn on rule": {
