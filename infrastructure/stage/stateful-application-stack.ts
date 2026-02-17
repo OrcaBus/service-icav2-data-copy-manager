@@ -15,6 +15,7 @@ import {
 import { createEventBridgePipe, getTopicArnFromTopicName } from './sqs';
 import { buildTable } from './dynamodb';
 import { buildEventBus } from './event-bus';
+import { buildSchemas } from './event-schemas';
 
 export type StatefulApplicationStackProps = StatefulApplicationStackConfig & cdk.StackProps;
 
@@ -46,6 +47,7 @@ export class StatefulApplicationStack extends cdk.Stack {
       icaAwsAccountNumber: DEFAULT_ICA_AWS_ACCOUNT_NUMBER,
     });
 
-    // FIXME - build event bridge schemas
+    // Build the schemas
+    buildSchemas(this);
   }
 }

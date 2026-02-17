@@ -15,10 +15,14 @@ export type EventBridgeNameList =
   | 'externalHeartBeatScheduleRule';
 
 export const eventBridgeNameList: Array<EventBridgeNameList> = [
+  /* Listen to copy jobs on the internal event bus */
   'listenInternalCopyJobRule',
+  /* Save the job and internal task token */
   'listenInternalTaskTokenRule',
+  /* Listen to copy jobs on the external event bus */
   'listenExternalCopyJobRule',
   'listenExternalCopyJobLegacyRule',
+  /* Schedule rule to send heartbeats */
   'internalHeartBeatScheduleRule',
   'externalHeartBeatScheduleRule',
 ];

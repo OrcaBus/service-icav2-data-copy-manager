@@ -90,6 +90,7 @@ export function buildEventBridgeRules(
   const eventBridgeObjects: EventBridgeRuleObject[] = [];
   for (const eventBridgeName of eventBridgeNameList) {
     switch (eventBridgeName) {
+      /* Listen to copy jobs on the internal event bus */
       case 'listenInternalCopyJobRule': {
         eventBridgeObjects.push({
           ruleName: eventBridgeName,
@@ -102,6 +103,7 @@ export function buildEventBridgeRules(
         });
         break;
       }
+      /* Save the job and internal task token */
       case 'listenInternalTaskTokenRule': {
         eventBridgeObjects.push({
           ruleName: eventBridgeName,
@@ -114,6 +116,7 @@ export function buildEventBridgeRules(
         });
         break;
       }
+      /* Listen to copy jobs on the external event bus */
       case 'listenExternalCopyJobRule': {
         eventBridgeObjects.push({
           ruleName: eventBridgeName,
@@ -136,6 +139,7 @@ export function buildEventBridgeRules(
         });
         break;
       }
+      /* Schedule rule to send heartbeats */
       case 'internalHeartBeatScheduleRule': {
         eventBridgeObjects.push({
           ruleName: eventBridgeName,
