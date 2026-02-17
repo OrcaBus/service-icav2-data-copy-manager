@@ -4,7 +4,6 @@ import { LambdaName, LambdaObject } from '../lambda/interfaces';
 import { EventBridgeNameList } from '../event-rules/interfaces';
 import { IEventBus } from 'aws-cdk-lib/aws-events';
 import { ITableV2 } from 'aws-cdk-lib/aws-dynamodb';
-import { EcsFargateTaskConstruct } from '@orcabus/platform-cdk-constructs/ecs';
 import { EcsTaskObject } from '../ecs/interfaces';
 
 export type SfnName =

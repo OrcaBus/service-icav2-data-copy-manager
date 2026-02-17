@@ -18,7 +18,6 @@ import {
 import { NagSuppressions } from 'cdk-nag';
 import { ICAV2_BASE_URL } from '@orcabus/platform-cdk-constructs/shared-config/icav2';
 import { camelCaseToSnakeCase } from '../utils';
-import { lambdaNameList, LambdaObject } from '../lambda/interfaces';
 
 function buildEcsFargateTask(scope: Construct, props: BuildFargateEcsTaskProps) {
   /*
