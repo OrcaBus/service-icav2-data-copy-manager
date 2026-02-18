@@ -2,7 +2,7 @@ FROM debian:bookworm
 
 ARG TARGETPLATFORM
 ARG CURL_VERSION="8.15.0"
-ARG WRAPICA_VERSION="2.40.1.post20260211135303"
+ARG WRAPICA_VERSION="2.40.1.post20260218114718"
 ARG PYTHON_VERSION="3.14"
 
 RUN \
@@ -42,10 +42,9 @@ RUN \
   curl -LsSf https://astral.sh/uv/install.sh | XDG_CONFIG_HOME=/tmp UV_INSTALL_DIR=/usr/bin sh && \
   uv venv --python "${PYTHON_VERSION}" && \
   # Install wrapica \
-  # Use --extra-index-url "https://test.pypi.org/simple" when testing new versions of wrapica \
+  # Use --index-strategy unsafe-best-match --extra-index-url "https://test.pypi.org/simple" when testing new versions of wrapica \
   uv pip install \
     --index-url "https://pypi.org/simple" \
-    --index-strategy unsafe-best-match \
     requests \
     wrapica=="${WRAPICA_VERSION}" && \
   # Install the aws cli \
