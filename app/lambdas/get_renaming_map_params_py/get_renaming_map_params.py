@@ -19,9 +19,12 @@ This gives us the full destination path for the copied file, we can also replace
 """
 
 # Standard imports
-import os
-from typing import List, Dict
+from typing import List
 from pathlib import Path
+from fastapi.encoders import jsonable_encoder
+
+# Layer imports
+from icav2_tools import set_icav2_env_vars
 
 # Wrapica imports
 from wrapica.data import get_data_obj_from_data_id
@@ -39,6 +42,9 @@ def handler(event, context):
     :param context:
     :return:
     """
+
+    # Set the icav2 env vars
+    set_icav2_env_vars()
 
     # Get the inputs
     source_uri_list: List[str] = event['sourceUriList']
@@ -71,12 +77,12 @@ def handler(event, context):
                 data_path=Path(destination_uri_obj.data.details.path) / Path(input_file_uri).name,
                 data_type="FILE"
             )
-            return {
+            return jsonable_encoder({
                 "projectId": coerce_data_id_or_uri_to_project_data_obj(destination_uri).project_id,
                 "inputDataId": input_data_obj.data.id,
                 "outputDataUri": output_data_uri,
                 "fileSizeInBytes": input_data_obj.data.details.file_size_in_bytes
-            }
+            })
 
     # Now check for input file uris inside the source uri list
     for source_uri_iter_ in source_uri_list:
@@ -87,12 +93,12 @@ def handler(event, context):
                 data_path=Path(destination_uri_obj.data.details.path) / Path(input_file_uri).name,
                 data_type="FILE"
             )
-            return {
+            return jsonable_encoder({
                 "projectId": coerce_data_id_or_uri_to_project_data_obj(destination_uri).project_id,
                 "inputDataId": input_data_obj.data.id,
                 "outputDataUri": output_data_uri,
                 "fileSizeInBytes": input_data_obj.data.details.file_size_in_bytes
-            }
+            })
 
     # From here on in, we expect that the dataId option is provided
     # Since the inputFileUri is not in the sourceUriList or externalSourceUriList
@@ -120,12 +126,12 @@ def handler(event, context):
                     data_path=Path(destination_uri_obj.data.details.path) / source_obj.details.name,
                     data_type="FILE"
                 )
-                return {
+                return jsonable_encoder({
                     "projectId": destination_uri_obj.project_id,
                     "inputDataId": input_data_obj.data.id,
                     "outputDataUri": convert_project_data_obj_to_uri(destination_uri_obj, uri_type='icav2') + output_file_name,
                     "fileSizeInBytes": source_obj.details.file_size_in_bytes
-                }
+                })
         else:
             # FOLDER - is the source object in the folder?
             if (
@@ -143,9 +149,9 @@ def handler(event, context):
                 # Then we need to make a renaming
                 output_data_uri = str(Path(destination_uri) / relative_path / output_file_name)
 
-                return {
+                return jsonable_encoder({
                     "projectId": source_obj.details.owning_project_id,
                     "inputDataId": copied_source_obj.data.id,
                     "outputDataUri": output_data_uri,
                     "fileSizeInBytes": source_obj.details.size_in_bytes
-                }
+                })
