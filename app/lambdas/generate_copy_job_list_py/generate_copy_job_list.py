@@ -28,6 +28,8 @@ from typing import List, Dict, Union
 from pathlib import Path
 import logging
 
+from fastapi.encoders import jsonable_encoder
+
 # Layer imports
 from icav2_tools import set_icav2_env_vars
 
@@ -68,13 +70,13 @@ def handler(event, context) -> Dict[str, List[Dict[str, Union[str, List[str]]]]]
         destination_uri,
         create_data_if_not_found=True
     )
-    external_data_uri_list = []
+    external_source_data_uri_list = []
 
     for source_uri_iter_ in source_uri_list:
         try:
             source_project_data_obj = coerce_data_id_or_uri_to_project_data_obj(source_uri_iter_)
-        except (NotADirectoryError, FileNotFoundError) as e:
-            external_data_uri_list.append(source_uri_iter_)
+        except (NotADirectoryError, FileNotFoundError, StopIteration) as e:
+            external_source_data_uri_list.append(source_uri_iter_)
             continue
 
         # Check if the source uri is a file or a folder
@@ -83,27 +85,27 @@ def handler(event, context) -> Dict[str, List[Dict[str, Union[str, List[str]]]]]
             source_list.append(
                 {
                     "projectId": source_project_data_obj.project_id,
-                    "dataId": source_project_data_obj.data.id
+                    "dataId": source_project_data_obj.data.id,
                 }
             )
             continue
 
         recursive_copy_jobs_list.append(
             {
-                "destinationUri": f"icav2://{parent_destination_project_data_obj.project_id}{Path(parent_destination_project_data_obj.data.details.path) / source_project_data_obj.data.details.name}/",
-                "sourceUri": f"icav2://{source_project_data_obj.project_id}{source_project_data_obj.data.details.path}"
+                "destinationUri": f"icav2://{str(parent_destination_project_data_obj.project_id)}{Path(parent_destination_project_data_obj.data.details.path) / source_project_data_obj.data.details.name}/",
+                "sourceUri": f"icav2://{str(source_project_data_obj.project_id)}{source_project_data_obj.data.details.path}",
             }
         )
 
-    return {
+    return jsonable_encoder({
         "sourceDataList": source_list,
         "destinationData": {
             "projectId": parent_destination_project_data_obj.project_id,
-            "dataId": parent_destination_project_data_obj.data.id
+            "dataId": parent_destination_project_data_obj.data.id,
         },
         "recursiveCopyJobsUriList": recursive_copy_jobs_list,
-        "externalDataUriList": external_data_uri_list
-    }
+        "externalSourceDataUriList": external_source_data_uri_list
+    })
 
 
 # if __name__ == "__main__":

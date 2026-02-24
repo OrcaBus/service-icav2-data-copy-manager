@@ -94,16 +94,20 @@ def get_presigned_url_from_filemanager_uri(filemanager_uri: str) -> str:
             "currentState": str(True).lower(),
             "bucket": filemanager_uri_obj.netloc,
             "key": filemanager_uri_obj.path.lstrip('/')
-        }
+        },
     )
     get_obj_req.raise_for_status()
     object_id = get_obj_req.json()['results'][0]['s3ObjectId']
 
     presign_req = requests.get(
         url=f"https://file.{environ[HOSTNAME_ENV_VAR]}/api/v1/s3/presign/{object_id}",
+        headers={
+            "Accept": "application/json",
+            "Authorization": f"Bearer {environ[ORCABUS_TOKEN_ENV_VAR]}"
+        },
         params={
             'responseContentDisposition': 'inline'
-        }
+        },
     )
     presign_req.raise_for_status()
     return presign_req.json()
@@ -153,8 +157,9 @@ def get_shell_script_template_for_multipart_file() -> str:
           --fail-with-body --silent --show-error --location \
           --request GET \
           --url "__DOWNLOAD_PRESIGNED_URL__" | \
-        aws s3 cp - \
+        aws s3 cp \
           --expected-size "__FILE_SIZE_IN_BYTES__" \
+          - \
           "__DESTINATION_S3_PATH__"
         """
     )

@@ -28,6 +28,7 @@ function buildLambda(scope: Construct, props: BuildLambdaProps): LambdaObject {
     handler: 'handler',
     timeout: Duration.seconds(900),
     memorySize: 2048, // 2GB
+    includeOrcabusApiToolsLayer: lambdaRequirements.needsOrcabusApiTools,
     includeIcav2Layer: lambdaRequirements.needsIcav2AccessToken,
   });
 

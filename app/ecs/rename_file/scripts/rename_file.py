@@ -237,7 +237,7 @@ def get_args():
 
     # Dest args
     args.add_argument(
-        "--output-file-uri",
+        "--output-data-uri",
         type=str,
         required=True,
         help="The output uri to for the file to be moved to"
@@ -274,7 +274,7 @@ def main():
             source_file_s3_path=convert_project_data_obj_to_s3_uri(
                 source_object
             ),
-            destination_file_s3_path=args.output_file_uri
+            destination_file_s3_path=args.output_data_uri
         )
         run_shell_script(
             destination_folder_object=destination_folder_object,

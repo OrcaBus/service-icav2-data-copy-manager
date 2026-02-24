@@ -44,7 +44,6 @@ function buildEcsFargateTask(scope: Construct, props: BuildFargateEcsTaskProps) 
 
   // Needs access to the secrets manager
   props.icav2AccessTokenSecretObj.grantRead(ecsTask.taskDefinition.taskRole);
-
   ecsTask.containerDefinition.addEnvironment(
     'ICAV2_ACCESS_TOKEN_SECRET_ID',
     props.icav2AccessTokenSecretObj.secretName
@@ -52,10 +51,12 @@ function buildEcsFargateTask(scope: Construct, props: BuildFargateEcsTaskProps) 
   ecsTask.containerDefinition.addEnvironment('ICAV2_BASE_URL', ICAV2_BASE_URL);
 
   // Needs access to ORCABUS_TOKEN_SECRET_ID and HOSTNAME_SSM_PARAMETER_NAME
+  props.orcabusTokenSecretObj.grantRead(ecsTask.taskDefinition.taskRole);
   ecsTask.containerDefinition.addEnvironment(
     'ORCABUS_TOKEN_SECRET_ID',
     props.orcabusTokenSecretObj.secretName
   );
+  props.hostnameSsmParameter.grantRead(ecsTask.taskDefinition.taskRole);
   ecsTask.containerDefinition.addEnvironment(
     'HOSTNAME_SSM_PARAMETER_NAME',
     props.hostnameSsmParameter.parameterName

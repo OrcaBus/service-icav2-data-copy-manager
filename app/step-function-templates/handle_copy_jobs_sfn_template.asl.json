@@ -80,7 +80,7 @@
         "sourceDataList": "{% $states.result.Payload.sourceDataList %}",
         "destinationData": "{% $states.result.Payload.destinationData %}",
         "recursiveCopyJobsUriList": "{% $states.result.Payload.recursiveCopyJobsUriList %}",
-        "externalSourceUriList": "{% $states.result.Payload.externalSourceUriList %}"
+        "externalSourceDataUriList": "{% $states.result.Payload.externalSourceDataUriList %}"
       }
     },
     "Run top level and recursive in parallel": {
@@ -650,7 +650,7 @@
                   },
                   "Upload from Filemanager (ECS)": {
                     "Type": "Task",
-                    "Resource": "arn:aws:states:::ecs:runTask",
+                    "Resource": "arn:aws:states:::ecs:runTask.sync",
                     "Arguments": {
                       "LaunchType": "FARGATE",
                       "Cluster": "${__upload_from_filemanager_cluster__}",
@@ -676,7 +676,7 @@
                               },
                               {
                                 "Name": "FILE_SIZE_IN_BYTES",
-                                "Value": "{% $states.input.sourceFileSizeInBytes %}"
+                                "Value": "{% $string($states.input.sourceFileSizeInBytes) %}"
                               },
                               {
                                 "Name": "DEST_PROJECT_ID",
@@ -696,7 +696,7 @@
                 }
               },
               "End": true,
-              "Items": "{% $externalSourceUriList %}",
+              "Items": "{% $externalSourceDataUriList %}",
               "ItemSelector": {
                 "externalSourceUriIter": "{% $states.context.Map.Item.Value %}",
                 "destinationDataIter": "{% $destinationData %}"
@@ -732,10 +732,10 @@
               "FunctionName": "${__get_renaming_map_params_lambda_function_arn__}",
               "Payload": {
                 "sourceUriList": "{% $sourceUriList %}",
-                "externalSourceUriList": "{% $externalSourceUriList %}",
+                "externalSourceUriList": "{% $externalSourceDataUriList %}",
                 "destinationUri": "{% $destinationUri %}",
                 "dataId": "{% $states.input.dataId ? $states.input.dataId : null %}",
-                "inputFileUri": "{% $states.input.inputFileUri ? $states.input.inputFileUri : null %}",
+                "inputFileUri": "{% $states.input.sourceUri ? $states.input.sourceUri : null %}",
                 "outputFileName": "{% $states.input.outputFileName %}"
               }
             },
@@ -755,9 +755,9 @@
             ],
             "Output": {
               "projectId": "{% $states.result.Payload.projectId %}",
-              "inputDataId": "{% $states.result.Payload.inputUri %}",
+              "inputDataId": "{% $states.result.Payload.inputDataId %}",
               "outputDataUri": "{% $states.result.Payload.outputDataUri %}",
-              "fileSizeInBytes": "{% $states.result.Payload.fileSize %}"
+              "fileSizeInBytes": "{% $states.result.Payload.fileSizeInBytes %}"
             },
             "Next": "If fileSize < 8 MB"
           },
@@ -802,7 +802,7 @@
           },
           "Rename File (ECS)": {
             "Type": "Task",
-            "Resource": "arn:aws:states:::ecs:runTask",
+            "Resource": "arn:aws:states:::ecs:runTask.sync",
             "Arguments": {
               "LaunchType": "FARGATE",
               "Cluster": "${__rename_file_cluster__}",

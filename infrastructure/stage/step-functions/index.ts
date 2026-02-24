@@ -39,17 +39,17 @@ function createStateMachineDefinitionSubstitutions(props: BuildSfnProps): {
   if (sfnRequirements.needsEcsPermissions) {
     for (const ecsTask of props.ecsFargateTaskObjects) {
       const taskNameSnakeCase = camelCaseToSnakeCase(ecsTask.taskName);
-      definitionSubstitutions[`${taskNameSnakeCase}_cluster__`] =
+      definitionSubstitutions[`__${taskNameSnakeCase}_cluster__`] =
         ecsTask.ecsFargateTaskConstruct.cluster.clusterArn;
-      definitionSubstitutions[`${taskNameSnakeCase}_task_definition__`] =
+      definitionSubstitutions[`__${taskNameSnakeCase}_task_definition__`] =
         ecsTask.ecsFargateTaskConstruct.taskDefinition.taskDefinitionArn;
-      definitionSubstitutions[`${taskNameSnakeCase}_subnets__`] =
+      definitionSubstitutions[`__${taskNameSnakeCase}_subnets__`] =
         ecsTask.ecsFargateTaskConstruct.cluster.vpc.privateSubnets
           .map((subnet) => subnet.subnetId)
           .join(',');
-      definitionSubstitutions[`${taskNameSnakeCase}_security_group__`] =
+      definitionSubstitutions[`__${taskNameSnakeCase}_security_group__`] =
         ecsTask.ecsFargateTaskConstruct.securityGroup.securityGroupId;
-      definitionSubstitutions[`${taskNameSnakeCase}_container_name__`] =
+      definitionSubstitutions[`__${taskNameSnakeCase}_container_name__`] =
         ecsTask.ecsFargateTaskConstruct.containerDefinition.containerName;
     }
   }

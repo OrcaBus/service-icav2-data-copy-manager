@@ -43,8 +43,9 @@ fi
 ICAV2_ACCESS_TOKEN="$( \
   aws secretsmanager get-secret-value \
     --secret-id "${ICAV2_ACCESS_TOKEN_SECRET_ID}" \
-    --output json | \
-  jq --raw-output '.SecretString' \
+    --output json \
+    --query SecretString | \
+  jq --raw-output
 )"
 export ICAV2_ACCESS_TOKEN
 

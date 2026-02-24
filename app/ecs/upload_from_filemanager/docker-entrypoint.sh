@@ -63,8 +63,9 @@ fi
 ICAV2_ACCESS_TOKEN="$( \
   aws secretsmanager get-secret-value \
     --secret-id "${ICAV2_ACCESS_TOKEN_SECRET_ID}" \
-    --output json | \
-  jq --raw-output '.SecretString' \
+    --output json \
+    --query SecretString | \
+  jq --raw-output
 )"
 export ICAV2_ACCESS_TOKEN
 
@@ -72,8 +73,9 @@ export ICAV2_ACCESS_TOKEN
 ORCABUS_TOKEN="$( \
   aws secretsmanager get-secret-value \
 	--secret-id "${ORCABUS_TOKEN_SECRET_ID}" \
-	--output json | \
-  jq --raw-output '.SecretString' \
+	--output json \
+	--query SecretString | \
+  jq --raw-output 'fromjson | .id_token' \
 )"
 export ORCABUS_TOKEN
 
@@ -86,10 +88,18 @@ HOSTNAME="$( \
 )"
 export HOSTNAME
 
+# Set the arguments array for the upload_from_filemanager.py script
+UPLOAD_FROM_FILEMANAGER_ARGS_ARRAY=( \
+  "--source-uri" "${SOURCE_URI}" \
+  "--file-size-in-bytes" "${FILE_SIZE_IN_BYTES}" \
+  "--dest-project-id" "${DEST_PROJECT_ID}" \
+  "--dest-data-id" "${DEST_DATA_ID}" \
+)
+
+if [[ "${IS_MULTIPART_FILE}" == "true" ]]; then
+  UPLOAD_FROM_FILEMANAGER_ARGS_ARRAY+=( "--is-multipart-file" )
+fi
+
 # Run the Python script
 uv run python3 scripts/upload_from_filemanager.py \
-  --source-uri "${SOURCE_URI}" \
-  --file-size-in-bytes "${FILE_SIZE_IN_BYTES}" \
-  --is-multipart-file "${IS_MULTIPART_FILE}" \
-  --dest-project-id "${DEST_PROJECT_ID}" \
-  --dest-data-id "${DEST_DATA_ID}"
+  "${UPLOAD_FROM_FILEMANAGER_ARGS_ARRAY[@]}"
