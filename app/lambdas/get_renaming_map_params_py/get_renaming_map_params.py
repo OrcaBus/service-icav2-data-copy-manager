@@ -19,7 +19,7 @@ This gives us the full destination path for the copied file, we can also replace
 """
 
 # Standard imports
-from typing import List, Dict
+from typing import List
 from pathlib import Path
 from fastapi.encoders import jsonable_encoder
 

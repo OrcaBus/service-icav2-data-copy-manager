@@ -32,7 +32,7 @@ export const lambdaNameList: LambdaName[] = [
 
 /* We also throw in our custom application interfaces here too */
 export interface LambdaRequirementProps {
-  needsIcav2AccessToken?: boolean;
+  needsIcav2Tools?: boolean;
   needsOrcabusApiTools?: boolean;
 }
 
@@ -40,39 +40,39 @@ export type LambdaToRequirementsMapType = { [key in LambdaName]: LambdaRequireme
 
 export const lambdaToRequirementsMap: LambdaToRequirementsMapType = {
   checkJobStatus: {
-    needsIcav2AccessToken: true,
+    needsIcav2Tools: true,
   },
   convertSourceUriFolderToUriList: {
-    needsIcav2AccessToken: true,
+    needsIcav2Tools: true,
   },
   findSinglePartFiles: {
-    needsIcav2AccessToken: true,
+    needsIcav2Tools: true,
   },
   generateCopyJobList: {
-    needsIcav2AccessToken: true,
+    needsIcav2Tools: true,
   },
   getExternalSourceFileMetadata: {
-    needsIcav2AccessToken: true,
+    needsIcav2Tools: true,
     needsOrcabusApiTools: true,
   },
   getRenamingMapParams: {
-    needsIcav2AccessToken: true,
+    needsIcav2Tools: true,
   },
   getSourceFileSize: {
-    needsIcav2AccessToken: true,
+    needsIcav2Tools: true,
   },
   launchIcav2Copy: {
-    needsIcav2AccessToken: true,
+    needsIcav2Tools: true,
   },
   renameFile: {
-    needsIcav2AccessToken: true,
+    needsIcav2Tools: true,
   },
   uploadFromFilemanager: {
-    needsIcav2AccessToken: true,
+    needsIcav2Tools: true,
     needsOrcabusApiTools: true,
   },
   uploadSinglePartFile: {
-    needsIcav2AccessToken: true,
+    needsIcav2Tools: true,
   },
 };
 

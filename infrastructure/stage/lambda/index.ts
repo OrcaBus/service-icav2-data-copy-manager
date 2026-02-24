@@ -29,7 +29,7 @@ function buildLambda(scope: Construct, props: BuildLambdaProps): LambdaObject {
     timeout: Duration.seconds(900),
     memorySize: 2048, // 2GB
     includeOrcabusApiToolsLayer: lambdaRequirements.needsOrcabusApiTools,
-    includeIcav2Layer: lambdaRequirements.needsIcav2AccessToken,
+    includeIcav2Layer: lambdaRequirements.needsIcav2Tools,
   });
 
   /* Return the function */
