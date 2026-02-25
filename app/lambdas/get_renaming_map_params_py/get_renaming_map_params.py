@@ -21,6 +21,8 @@ This gives us the full destination path for the copied file, we can also replace
 # Standard imports
 from typing import List
 from pathlib import Path
+from urllib.parse import urlparse, urlunparse
+
 from fastapi.encoders import jsonable_encoder
 
 # Layer imports
@@ -71,7 +73,12 @@ def handler(event, context):
     # We don't need to check the external_source_uri_list for data ids since no external source uri will have data ids
     for external_source_uri_iter_ in external_source_uri_list:
         if input_file_uri is not None and input_file_uri.startswith(external_source_uri_iter_):
-            output_data_uri = str(Path(destination_uri) / output_file_name)
+            output_data_uri = str(urlunparse((
+                urlparse(destination_uri).scheme,
+                urlparse(destination_uri).netloc,
+                str(Path(urlparse(destination_uri).path) / output_file_name),
+                None, None, None
+            )))
             input_data_obj = get_project_data_obj_from_project_id_and_path(
                 project_id=destination_uri_obj.project_id,
                 data_path=Path(destination_uri_obj.data.details.path) / Path(input_file_uri).name,
@@ -87,7 +94,12 @@ def handler(event, context):
     # Now check for input file uris inside the source uri list
     for source_uri_iter_ in source_uri_list:
         if input_file_uri is not None and input_file_uri.startswith(source_uri_iter_):
-            output_data_uri = str(Path(destination_uri) / output_file_name)
+            output_data_uri = str(urlunparse((
+                urlparse(destination_uri).scheme,
+                urlparse(destination_uri).netloc,
+                str(Path(urlparse(destination_uri).path) / output_file_name),
+                None, None, None
+            )))
             input_data_obj = get_project_data_obj_from_project_id_and_path(
                 project_id=destination_uri_obj.project_id,
                 data_path=Path(destination_uri_obj.data.details.path) / Path(input_file_uri).name,
