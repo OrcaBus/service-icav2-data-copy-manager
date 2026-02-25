@@ -21,6 +21,8 @@ This gives us the full destination path for the copied file, we can also replace
 # Standard imports
 from typing import List
 from pathlib import Path
+from urllib.parse import urlparse, urlunparse
+
 from fastapi.encoders import jsonable_encoder
 
 # Layer imports
@@ -54,6 +56,10 @@ def handler(event, context):
     input_file_uri: str = event.get('inputFileUri')
     output_file_name: str = event['outputFileName']
 
+    # Check output file name to ensure it does not have any path components
+    if not str(Path(output_file_name)) == output_file_name:
+        raise ValueError("outputFileName must not contain any path components.")
+
     # Ensure at least one of dataId or inputFileUri is provided
     if data_id is None and input_file_uri is None:
         raise ValueError("At least one of dataId or inputFileUri must be provided.")
@@ -62,7 +68,7 @@ def handler(event, context):
         external_source_uri_list = []
 
     # Get the destination uri object
-    destination_uri_obj = coerce_data_id_or_uri_to_project_data_obj(
+    destination_pd_obj = coerce_data_id_or_uri_to_project_data_obj(
         destination_uri
     )
 
@@ -71,10 +77,16 @@ def handler(event, context):
     # We don't need to check the external_source_uri_list for data ids since no external source uri will have data ids
     for external_source_uri_iter_ in external_source_uri_list:
         if input_file_uri is not None and input_file_uri.startswith(external_source_uri_iter_):
-            output_data_uri = str(Path(destination_uri) / output_file_name)
+            destination_uri_obj = urlparse(destination_uri)
+            output_data_uri = str(urlunparse((
+                destination_uri_obj.scheme,
+                destination_uri_obj.netloc,
+                str(Path(destination_uri_obj.path) / output_file_name),
+                None, None, None
+            )))
             input_data_obj = get_project_data_obj_from_project_id_and_path(
-                project_id=destination_uri_obj.project_id,
-                data_path=Path(destination_uri_obj.data.details.path) / Path(input_file_uri).name,
+                project_id=destination_pd_obj.project_id,
+                data_path=Path(destination_pd_obj.data.details.path) / Path(input_file_uri).name,
                 data_type="FILE"
             )
             return jsonable_encoder({
@@ -87,10 +99,16 @@ def handler(event, context):
     # Now check for input file uris inside the source uri list
     for source_uri_iter_ in source_uri_list:
         if input_file_uri is not None and input_file_uri.startswith(source_uri_iter_):
-            output_data_uri = str(Path(destination_uri) / output_file_name)
+            destination_uri_obj = urlparse(destination_uri)
+            output_data_uri = str(urlunparse((
+                destination_uri_obj.scheme,
+                destination_uri_obj.netloc,
+                str(Path(destination_uri_obj.path) / output_file_name),
+                None, None, None
+            )))
             input_data_obj = get_project_data_obj_from_project_id_and_path(
-                project_id=destination_uri_obj.project_id,
-                data_path=Path(destination_uri_obj.data.details.path) / Path(input_file_uri).name,
+                project_id=destination_pd_obj.project_id,
+                data_path=Path(destination_pd_obj.data.details.path) / Path(input_file_uri).name,
                 data_type="FILE"
             )
             return jsonable_encoder({
@@ -122,14 +140,14 @@ def handler(event, context):
                 source_obj.id == source_uri_iter_obj.data.id
             ):
                 input_data_obj = get_project_data_obj_from_project_id_and_path(
-                    project_id=destination_uri_obj.project_id,
-                    data_path=Path(destination_uri_obj.data.details.path) / source_obj.details.name,
+                    project_id=destination_pd_obj.project_id,
+                    data_path=Path(destination_pd_obj.data.details.path) / source_obj.details.name,
                     data_type="FILE"
                 )
                 return jsonable_encoder({
-                    "projectId": destination_uri_obj.project_id,
+                    "projectId": destination_pd_obj.project_id,
                     "inputDataId": input_data_obj.data.id,
-                    "outputDataUri": convert_project_data_obj_to_uri(destination_uri_obj, uri_type='icav2') + output_file_name,
+                    "outputDataUri": convert_project_data_obj_to_uri(destination_pd_obj, uri_type='icav2') + output_file_name,
                     "fileSizeInBytes": source_obj.details.file_size_in_bytes
                 })
         else:
@@ -142,8 +160,8 @@ def handler(event, context):
                 relative_path = Path(source_obj.details.path).relative_to(source_uri_iter_obj.data.details.path)
                 # Then we get the copied source object from the destination uri path, plus the relative path
                 copied_source_obj = get_project_data_obj_from_project_id_and_path(
-                    project_id=destination_uri_obj.project_id,
-                    data_path=Path(destination_uri_obj.data.details.path) / Path(source_obj.details.path).name / relative_path,
+                    project_id=destination_pd_obj.project_id,
+                    data_path=Path(destination_pd_obj.data.details.path) / Path(source_obj.details.path).name / relative_path,
                     data_type="FOLDER"
                 )
                 # Then we need to make a renaming

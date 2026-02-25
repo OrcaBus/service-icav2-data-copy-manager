@@ -111,7 +111,9 @@ def get_shell_script_template_for_multipart_file() -> str:
 
         set -euo pipefail
 
-        aws s3 mv "__SOURCE_S3_PATH__" "__DESTINATION_S3_PATH__"
+        aws s3 mv \
+          --copy-props none \
+          "__SOURCE_S3_PATH__" "__DESTINATION_S3_PATH__"
         """
     )
 
