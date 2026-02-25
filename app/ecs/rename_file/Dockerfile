@@ -1,4 +1,4 @@
-FROM debian:bookworm
+FROM public.ecr.aws/debian/debian:bookworm
 
 ARG TARGETPLATFORM
 ARG CURL_VERSION="8.15.0"
