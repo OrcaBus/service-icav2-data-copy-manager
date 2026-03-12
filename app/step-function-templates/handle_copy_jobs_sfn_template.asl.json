@@ -85,7 +85,7 @@
     },
     "Run top level and recursive in parallel": {
       "Type": "Parallel",
-      "Next": "Has renaming map",
+      "Next": "Validate Files",
       "Branches": [
         {
           "StartAt": "Find files with single multipart uploads",
@@ -706,6 +706,102 @@
         }
       ]
     },
+    "Validate Files": {
+      "Type": "Parallel",
+      "Next": "Has renaming map",
+      "Branches": [
+        {
+          "StartAt": "Validate source files list",
+          "States": {
+            "Validate source files list": {
+              "Type": "Map",
+              "ItemProcessor": {
+                "ProcessorConfig": {
+                  "Mode": "INLINE"
+                },
+                "StartAt": "Validate File (local)",
+                "States": {
+                  "Validate File (local)": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:states:::lambda:invoke",
+                    "Output": "{% $states.result.Payload %}",
+                    "Arguments": {
+                      "FunctionName": "${__validate_file_transfer_lambda_function_arn__}",
+                      "Payload": {
+                        "destinationUri": "{% $destinationUri %}",
+                        "sourceDataUri": "{% $states.input %}"
+                      }
+                    },
+                    "Retry": [
+                      {
+                        "ErrorEquals": [
+                          "Lambda.ServiceException",
+                          "Lambda.AWSLambdaException",
+                          "Lambda.SdkClientException",
+                          "Lambda.TooManyRequestsException"
+                        ],
+                        "IntervalSeconds": 1,
+                        "MaxAttempts": 3,
+                        "BackoffRate": 2,
+                        "JitterStrategy": "FULL"
+                      }
+                    ],
+                    "End": true
+                  }
+                }
+              },
+              "End": true,
+              "Items": "{% $sourceDataList %}"
+            }
+          }
+        },
+        {
+          "StartAt": "Validate external source files list",
+          "States": {
+            "Validate external source files list": {
+              "Type": "Map",
+              "ItemProcessor": {
+                "ProcessorConfig": {
+                  "Mode": "INLINE"
+                },
+                "StartAt": "Validate File (external)",
+                "States": {
+                  "Validate File (external)": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:states:::lambda:invoke",
+                    "Output": "{% $states.result.Payload %}",
+                    "Arguments": {
+                      "FunctionName": "${__validate_file_transfer_lambda_function_arn__}",
+                      "Payload": {
+                        "destinationUri": "{% $destinationUri %}",
+                        "sourceDataUri": "{% $states.input %}"
+                      }
+                    },
+                    "Retry": [
+                      {
+                        "ErrorEquals": [
+                          "Lambda.ServiceException",
+                          "Lambda.AWSLambdaException",
+                          "Lambda.SdkClientException",
+                          "Lambda.TooManyRequestsException"
+                        ],
+                        "IntervalSeconds": 1,
+                        "MaxAttempts": 3,
+                        "BackoffRate": 2,
+                        "JitterStrategy": "FULL"
+                      }
+                    ],
+                    "End": true
+                  }
+                }
+              },
+              "End": true,
+              "Items": "{% $externalSourceDataUriList %}"
+            }
+          }
+        }
+      ]
+    },
     "Has renaming map": {
       "Type": "Choice",
       "Choices": [
@@ -775,13 +871,45 @@
           "Rename File (lambda)": {
             "Type": "Task",
             "Resource": "arn:aws:states:::lambda:invoke",
-            "Output": "{% $states.result.Payload %}",
+            "Output": "{% $states.input %}",
             "Arguments": {
               "FunctionName": "${__rename_file_lambda_function_arn__}",
               "Payload": {
                 "projectId": "{% $states.input.projectId %}",
                 "inputDataId": "{% $states.input.inputDataId %}",
                 "outputDataUri": "{% $states.input.outputDataUri %}"
+              }
+            },
+            "Retry": [
+              {
+                "ErrorEquals": [
+                  "Lambda.ServiceException",
+                  "Lambda.AWSLambdaException",
+                  "Lambda.SdkClientException",
+                  "Lambda.TooManyRequestsException"
+                ],
+                "IntervalSeconds": 1,
+                "MaxAttempts": 3,
+                "BackoffRate": 2,
+                "JitterStrategy": "FULL"
+              }
+            ],
+            "Next": "Wait for ICAv2 System to see renamed file"
+          },
+          "Wait for ICAv2 System to see renamed file": {
+            "Type": "Wait",
+            "Seconds": 30,
+            "Next": "Validate File (post rename)"
+          },
+          "Validate File (post rename)": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Output": "{% $states.result.Payload %}",
+            "Arguments": {
+              "FunctionName": "${__validate_file_transfer_lambda_function_arn__}",
+              "Payload": {
+                "fileSizeInBytes": "{% $states.input.fileSizeInBytes %}",
+                "outputUri": "{% $states.input.outputDataUri %}"
               }
             },
             "Retry": [
@@ -835,7 +963,8 @@
                 ]
               }
             },
-            "End": true
+            "Next": "Wait for ICAv2 System to see renamed file",
+            "Output": "{% $states.input %}"
           }
         }
       },
