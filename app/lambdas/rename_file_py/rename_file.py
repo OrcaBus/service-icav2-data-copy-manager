@@ -138,7 +138,7 @@ def handler(event, context):
     # Get the destination folder object
     output_data_url_obj = urlparse(event['outputDataUri'])
     destination_folder_object = get_project_data_obj_from_project_id_and_path(
-        project_id=output_data_url_obj.netloc,
+        project_id=source_object.project_id,
         data_path=Path(output_data_url_obj.path).parent,
         data_type="FOLDER"
     )
