@@ -24,6 +24,7 @@ from wrapica.project_data import (
     get_project_data_obj_by_id,
     get_project_data_obj_from_project_id_and_path,
     create_file_with_upload_url, delete_project_data,
+    convert_uri_to_project_data_obj
 )
 from wrapica.utils.globals import FILE_DATA_TYPE
 
@@ -43,15 +44,15 @@ def get_shell_script_template() -> str:
         # Download + upload
         # Then delete the original via the ICAv2 API
         (
-            curl --location \
-             "__DOWNLOAD_PRESIGNED_URL__" | \
-            curl --location \
+            curl --fail --silent --show-error --location \
+              "__DOWNLOAD_PRESIGNED_URL__" | \
+            curl --fail --silent --show-error --location \
               --request PUT \
               --header 'Content-Type: application/octet-stream' \
               --data-binary "@-" \
               "__UPLOAD_PRESIGNED_URL__"
         ) && \
-        curl --location \
+        curl --fail --silent --show-error --location \
           --request 'POST' \
           --header 'Accept: application/vnd.illumina.v3+json' \
           --header 'Authorization: Bearer __ICAV2_ACCESS_TOKEN__' \
@@ -128,21 +129,52 @@ def handler(event, context):
     :param context:
     :return:
     """
+    # Set env vars
     set_icav2_env_vars()
+
+    # Get inputs
+    project_id = event["projectId"]
+    input_data_id = event["inputDataId"]
+    output_data_uri = event["outputDataUri"]
+
+    # Get the output data file name
+    output_file_name = Path(urlparse(output_data_uri).path).name
 
     # Get the source file object
     source_object = get_project_data_obj_by_id(
-        project_id=event["projectId"],
-        data_id=event["inputDataId"]
+        project_id=project_id,
+        data_id=input_data_id
     )
-    # Get the destination folder object
-    output_data_url_obj = urlparse(event['outputDataUri'])
+    # Get the destination object
+    destination_object = convert_uri_to_project_data_obj(
+        output_data_uri,
+        create_data_if_not_found=True,
+    )
+    # Check destination object is a file
+    if not destination_object.data.details.data_type == 'FILE':
+        raise ValueError("Expected data type to be a file")
+
+    # Also check tha the destination object is different to the source object
+    if (
+            source_object.project_id == destination_object.project_id and
+            source_object.data.id == destination_object.data.id
+    ):
+        raise ValueError("Expected source and destination objects to be different")
+
+    # Delete the newly created destination object (since we're going to overwrite it anyway)
+    delete_project_data(
+        project_id=destination_object.project_id,
+        data_id=destination_object.data.id
+    )
+    # Give servers ample time to catch up
+    sleep(5)
+
+    # Get the folder object
     destination_folder_object = get_project_data_obj_from_project_id_and_path(
-        project_id=source_object.project_id,
-        data_path=Path(output_data_url_obj.path).parent,
+        project_id=destination_object.project_id,
+        data_path=Path(destination_object.data.details.path).parent,
         data_type="FOLDER"
     )
-    output_file_name = Path(output_data_url_obj.path).name
 
     # Create the source file download url
     source_file_download_url = create_download_url(
@@ -150,34 +182,6 @@ def handler(event, context):
         file_id=source_object.data.id,
     )
 
-    # Check if the destination file exists
-    try:
-        existing_project_data_obj = get_project_data_obj_from_project_id_and_path(
-            project_id=destination_folder_object.project_id,
-            data_path=Path(destination_folder_object.data.details.path) / source_object.data.details.name,
-            data_type=FILE_DATA_TYPE
-        )
-        # If we have a partial file, we can delete it and re-upload
-        if existing_project_data_obj.data.details.status == 'PARTIAL':
-            # Delete the file
-            delete_project_data(
-                project_id=destination_folder_object.project_id,
-                data_id=existing_project_data_obj.data.id
-            )
-            # Wait for the db to catch up
-            sleep(POST_DELETION_WAIT_TIME)
-        elif existing_project_data_obj.data.details.file_size_in_bytes == source_object.data.details.file_size_in_bytes:
-            # If the file sizes match, we can skip the upload
-            # Check the file sizes match
-            return
-        else:
-            raise RuntimeError(
-                f"File {existing_project_data_obj.data.details.path} already exists in destination folder "
-                f"with a different file size. Cannot overwrite."
-            )
-
-    except FileNotFoundError:
-        pass
     # Create the file object
     destination_file_upload_url = create_file_with_upload_url(
         project_id=destination_folder_object.project_id,
@@ -192,8 +196,8 @@ def handler(event, context):
         # Set when set_icav2_env_vars is called
         icav2_base_url=environ['ICAV2_BASE_URL'],
         icav2_access_token=environ['ICAV2_ACCESS_TOKEN'],
-        project_id=str(source_object.project_id),
-        data_id=source_object.data.id,
+        project_id=str(project_id),
+        data_id=str(source_object.data.id),
     )
 
     # Run the shell script
