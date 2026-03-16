@@ -26,8 +26,6 @@ from wrapica.project_data import (
     create_file_with_upload_url, delete_project_data,
     convert_uri_to_project_data_obj
 )
-from wrapica.utils.globals import FILE_DATA_TYPE
-
 
 # Globals
 POST_DELETION_WAIT_TIME = 5  # seconds
@@ -154,7 +152,7 @@ def handler(event, context):
     if not destination_object.data.details.data_type == 'FILE':
         raise ValueError("Expected data type to be a file")
 
-    # Also check tha the destination object is different to the source object
+    # Also check that the destination object is different to the source object
     if (
             source_object.project_id == destination_object.project_id and
             source_object.data.id == destination_object.data.id
@@ -167,7 +165,7 @@ def handler(event, context):
         data_id=destination_object.data.id
     )
     # Give servers ample time to catch up
-    sleep(5)
+    sleep(POST_DELETION_WAIT_TIME)
 
     # Get the folder object
     destination_folder_object = get_project_data_obj_from_project_id_and_path(
