@@ -33,14 +33,18 @@ from orcabus_api_tools.filemanager.errors import S3FileNotFoundError
 def get_filesize_from_uri(uri: str) -> int:
     # First try to get the file from the filemanager
     # Otherwise try from the ICAv2 project data object
-    try:
+    uri_obj = urlparse(uri)
+
+    if uri_obj.scheme == 's3':
         s3_obj = get_file_object_from_s3_uri(uri)
         file_size = s3_obj['size']
-    except S3FileNotFoundError:
+    elif uri_obj.scheme == 'icav2':
         project_data_obj = coerce_data_id_or_uri_to_project_data_obj(
             uri
         )
         file_size = project_data_obj.data.details.file_size_in_bytes
+    else:
+        raise ValueError(f"Expected scheme to be one of s3 or icav2, got {uri_obj.scheme}")
 
     return file_size
 
