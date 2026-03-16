@@ -751,7 +751,8 @@
                 }
               },
               "End": true,
-              "Items": "{% $sourceDataList %}"
+              "Items": "{% $sourceDataList %}",
+              "MaxConcurrency": 10
             }
           }
         },
@@ -796,7 +797,8 @@
                 }
               },
               "End": true,
-              "Items": "{% $externalSourceDataUriList %}"
+              "Items": "{% $externalSourceDataUriList %}",
+              "MaxConcurrency": 10
             }
           }
         }
