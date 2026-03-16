@@ -39,9 +39,9 @@ def get_shell_script_template() -> str:
 
         set -euo pipefail
 
-        curl --location \
+        curl --fail --silent --show-error --location \
          "__DOWNLOAD_PRESIGNED_URL__" | \
-        curl --location \
+        curl --fail --silent --show-error --location \
           --request PUT \
           --header 'Content-Type: application/octet-stream' \
           --data-binary "@-" \
