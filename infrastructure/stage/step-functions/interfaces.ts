@@ -42,6 +42,7 @@ export const HandleCopyJobsLambdaList: LambdaName[] = [
   'renameFile',
   'uploadFromFilemanager',
   'uploadSinglePartFile',
+  'validateFileTransfer',
 ];
 
 export const SendHeartbeatInternalJobsLambdaList: LambdaName[] = ['checkJobStatus'];

@@ -12,7 +12,8 @@ export type LambdaName =
   | 'launchIcav2Copy'
   | 'renameFile'
   | 'uploadFromFilemanager'
-  | 'uploadSinglePartFile';
+  | 'uploadSinglePartFile'
+  | 'validateFileTransfer';
 
 /* Lambda names array */
 /* Bit of double handling, BUT types are not parsed to JS */
@@ -28,6 +29,7 @@ export const lambdaNameList: LambdaName[] = [
   'renameFile',
   'uploadFromFilemanager',
   'uploadSinglePartFile',
+  'validateFileTransfer',
 ];
 
 /* We also throw in our custom application interfaces here too */
@@ -73,6 +75,10 @@ export const lambdaToRequirementsMap: LambdaToRequirementsMapType = {
   },
   uploadSinglePartFile: {
     needsIcav2Tools: true,
+  },
+  validateFileTransfer: {
+    needsIcav2Tools: true,
+    needsOrcabusApiTools: true,
   },
 };
 
