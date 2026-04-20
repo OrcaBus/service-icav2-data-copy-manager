@@ -4,7 +4,6 @@ import {
   EventBridgeRulesProps,
   ExternalEventBridgeRuleProps,
   HeartBeatEventBridgeRuleProps,
-  InternalEventBridgeRuleProps,
 } from './interfaces';
 import { Rule } from 'aws-cdk-lib/aws-events';
 import * as events from 'aws-cdk-lib/aws-events';
@@ -19,36 +18,6 @@ function buildHeartBeatEventBridgeRule(
   return new events.Rule(scope, props.ruleName, {
     ruleName: props.ruleName,
     schedule: events.Schedule.rate(props.scheduleDuration ?? DEFAULT_HEART_BEAT_INTERVAL),
-  });
-}
-
-function buildInternalCopyJobRule(scope: Construct, props: InternalEventBridgeRuleProps): Rule {
-  return new events.Rule(scope, props.ruleName, {
-    ruleName: props.ruleName,
-    eventPattern: {
-      source: [props.eventSource],
-      detailType: [props.eventDetailType],
-      detail: {
-        payload: {
-          destinationUri: [{ exists: true }],
-        },
-      },
-    },
-    eventBus: props.eventBus,
-  });
-}
-
-function buildInternalTaskTokenRule(scope: Construct, props: InternalEventBridgeRuleProps): Rule {
-  return new events.Rule(scope, props.ruleName, {
-    ruleName: props.ruleName,
-    eventPattern: {
-      source: [props.eventSource],
-      detailType: [props.eventDetailType],
-      detail: {
-        jobId: [{ exists: true }],
-      },
-    },
-    eventBus: props.eventBus,
   });
 }
 
@@ -67,22 +36,6 @@ function buildExternalCopyJobRule(scope: Construct, props: ExternalEventBridgeRu
   });
 }
 
-function buildExternalCopyJobLegacyRule(
-  scope: Construct,
-  props: ExternalEventBridgeRuleProps
-): Rule {
-  return new events.Rule(scope, props.ruleName, {
-    ruleName: props.ruleName,
-    eventPattern: {
-      detailType: [props.eventDetailType],
-      detail: {
-        destinationUri: [{ exists: true }],
-      },
-    },
-    eventBus: props.eventBus,
-  });
-}
-
 export function buildEventBridgeRules(
   scope: Construct,
   props: EventBridgeRulesProps
@@ -90,32 +43,6 @@ export function buildEventBridgeRules(
   const eventBridgeObjects: EventBridgeRuleObject[] = [];
   for (const eventBridgeName of eventBridgeNameList) {
     switch (eventBridgeName) {
-      /* Listen to copy jobs on the internal event bus */
-      case 'listenInternalCopyJobRule': {
-        eventBridgeObjects.push({
-          ruleName: eventBridgeName,
-          ruleObject: buildInternalCopyJobRule(scope, {
-            ruleName: eventBridgeName,
-            eventBus: props.internalEventBus,
-            eventSource: props.eventSource,
-            eventDetailType: props.eventDetailType,
-          }),
-        });
-        break;
-      }
-      /* Save the job and internal task token */
-      case 'listenInternalTaskTokenRule': {
-        eventBridgeObjects.push({
-          ruleName: eventBridgeName,
-          ruleObject: buildInternalTaskTokenRule(scope, {
-            ruleName: eventBridgeName,
-            eventBus: props.internalEventBus,
-            eventSource: props.eventSource,
-            eventDetailType: props.eventDetailType,
-          }),
-        });
-        break;
-      }
       /* Listen to copy jobs on the external event bus */
       case 'listenExternalCopyJobRule': {
         eventBridgeObjects.push({
@@ -128,18 +55,16 @@ export function buildEventBridgeRules(
         });
         break;
       }
-      case 'listenExternalCopyJobLegacyRule': {
+      /* Schedule rule to send heartbeats */
+      case 'sqsQueueScheduleRule': {
         eventBridgeObjects.push({
           ruleName: eventBridgeName,
-          ruleObject: buildExternalCopyJobLegacyRule(scope, {
+          ruleObject: buildHeartBeatEventBridgeRule(scope, {
             ruleName: eventBridgeName,
-            eventBus: props.externalEventBus,
-            eventDetailType: props.eventDetailType,
           }),
         });
         break;
       }
-      /* Schedule rule to send heartbeats */
       case 'internalHeartBeatScheduleRule': {
         eventBridgeObjects.push({
           ruleName: eventBridgeName,

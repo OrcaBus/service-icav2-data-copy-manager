@@ -1,9 +1,11 @@
 import {
   BuildSfnProps,
   BuildSfnsProps,
+  SfnName,
   sfnNameList,
   SfnObject,
   SfnRequirementsMapType,
+  stepFunctionToLambdaMap,
   WirePermissionsProps,
 } from './interfaces';
 import * as iam from 'aws-cdk-lib/aws-iam';
@@ -16,6 +18,7 @@ import { camelCaseToSnakeCase } from '../utils';
 import { Construct } from 'constructs';
 import * as awsLogs from 'aws-cdk-lib/aws-logs';
 import { RetentionDays } from 'aws-cdk-lib/aws-logs';
+import { LambdaObject } from '../lambda/interfaces';
 
 function createStateMachineDefinitionSubstitutions(props: BuildSfnProps): {
   [key: string]: string;
@@ -27,11 +30,10 @@ function createStateMachineDefinitionSubstitutions(props: BuildSfnProps): {
   const definitionSubstitutions: { [key: string]: string } = {};
 
   /* Substitute lambdas in the state machine definition */
-  if (props.lambdas) {
-    for (const lambdaObject of props.lambdas) {
+  if (props.lambdaFunctions) {
+    for (const lambdaObject of props.lambdaFunctions) {
       const sfnSubtitutionKey = `__${camelCaseToSnakeCase(lambdaObject.lambdaName)}_lambda_function_arn__`;
-      definitionSubstitutions[sfnSubtitutionKey] =
-        lambdaObject.lambdaFunction.currentVersion.functionArn;
+      definitionSubstitutions[sfnSubtitutionKey] = lambdaObject.lambdaFunction.functionArn;
     }
   }
 
@@ -54,11 +56,6 @@ function createStateMachineDefinitionSubstitutions(props: BuildSfnProps): {
     }
   }
 
-  /* Substitute the event bus in the state machine definition */
-  if (props.internalEventBus) {
-    definitionSubstitutions['__internal_event_bus_name__'] = props.internalEventBus.eventBusName;
-  }
-
   /* Substitute the dynamodb table in the state machine definition */
   if (props.tableObj) {
     definitionSubstitutions['__table_name__'] = props.tableObj.tableName;
@@ -73,21 +70,40 @@ function createStateMachineDefinitionSubstitutions(props: BuildSfnProps): {
     definitionSubstitutions['__external_heartbeat_event_bridge_rule_name__'] =
       props.externalHeartBeatRuleName;
   }
-
-  /* Substitute the event detail type in the state machine definition */
-  if (props.icav2CopyServiceDetailType) {
-    definitionSubstitutions['__event_detail_type__'] = props.icav2CopyServiceDetailType;
-  }
-
-  /* Substitute the event source in the state machine definition */
-  if (props.icav2CopyServiceEventSource) {
-    definitionSubstitutions['__event_source__'] = props.icav2CopyServiceEventSource;
+  if (props.sqsHeartBeatRuleName) {
+    definitionSubstitutions['__sqs_heartbeat_scheduler_rule_name__'] = props.sqsHeartBeatRuleName;
   }
 
   /* Substitute the sfn object arn names in the state machine definition */
-  if (props.handleCopyJobsSfnObject) {
+  if (sfnRequirements.needsHandleCopyJobsListExecutions) {
+    const handleCopyJobsSfnName: SfnName = 'handleCopyJobs';
     definitionSubstitutions['__handle_copy_jobs_state_machine_arn__'] =
-      props.handleCopyJobsSfnObject.stateMachineObj.stateMachineArn;
+      `arn:aws:states:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:stateMachine:${STACK_PREFIX}--${handleCopyJobsSfnName}`;
+  }
+
+  /* Copy the SQS Queue */
+  if (sfnRequirements.needsSqsPermissions) {
+    definitionSubstitutions['__copy_job_queue_url__'] =
+      `https://sqs.${cdk.Aws.REGION}.amazonaws.com/${cdk.Aws.ACCOUNT_ID}/${props.copySqsQueue.queueName}`;
+  }
+
+  /* Do we need nested sfn arn executions */
+  if (sfnRequirements.needsNestedStepFunctionStartExecutionPermissions) {
+    if (props.stateMachineName == 'handleCopyJobs') {
+      for (const nestedSfnName of sfnNameList) {
+        // For each of the active nested sfn functions
+        // Add in the definition substitution
+        switch (nestedSfnName) {
+          case 'saveJobAndInternalTaskToken':
+          case 'sendCopyJobsToQueue':
+            definitionSubstitutions[
+              `__${camelCaseToSnakeCase(nestedSfnName)}_state_machine_arn__`
+            ] =
+              `arn:aws:states:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:stateMachine:${STACK_PREFIX}--${nestedSfnName}`;
+            break;
+        }
+      }
+    }
   }
 
   return definitionSubstitutions;
@@ -97,17 +113,14 @@ function wireUpStateMachinePermissions(scope: Construct, props: WirePermissionsP
   /* Wire up sfn permissions */
   const sfnRequirements = SfnRequirementsMapType[props.stateMachineName];
 
-  /* Grant invoke on all lambdas required for this state machine */
-  if (sfnRequirements.requiredLambdaNameList) {
-    for (const lambdaName of sfnRequirements.requiredLambdaNameList) {
-      if (!props.lambdas) {
-        throw new Error(
-          `Lambdas are not defined for state machine that requires them: ${props.stateMachineName}`
-        );
-      }
-      const lambdaObject = props.lambdas.find((lambda) => lambda.lambdaName === lambdaName);
-      lambdaObject?.lambdaFunction.currentVersion.grantInvoke(props.stateMachineObj);
-    }
+  const lambdaFunctionNamesInSfn = stepFunctionToLambdaMap[props.stateMachineName];
+  const lambdaFunctions = props.lambdaFunctions.filter((lambdaObject) =>
+    lambdaFunctionNamesInSfn.includes(lambdaObject.lambdaName)
+  );
+
+  /* Allow the state machine to invoke the lambda function */
+  for (const lambdaObject of lambdaFunctions) {
+    lambdaObject.lambdaFunction.grantInvoke(props.stateMachineObj);
   }
 
   /* Grant invoke on the fargate upload single file task */
@@ -137,16 +150,6 @@ function wireUpStateMachinePermissions(scope: Construct, props: WirePermissionsP
       ],
       true
     );
-  }
-
-  /* Wire up event bus permissions */
-  if (sfnRequirements.needsInternalEventBus) {
-    if (!props.internalEventBus) {
-      throw new Error(
-        `Internal event bus is not defined for state machine that requires it: ${props.stateMachineName}`
-      );
-    }
-    props.internalEventBus.grantPutEventsTo(props.stateMachineObj);
   }
 
   /* Wire up dynamodb table permissions */
@@ -188,6 +191,22 @@ function wireUpStateMachinePermissions(scope: Construct, props: WirePermissionsP
         actions: ['events:EnableRule', 'events:DisableRule'],
         resources: [
           `arn:aws:events:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:rule/${props.externalHeartBeatRuleName}`,
+        ],
+      })
+    );
+  }
+  if (sfnRequirements.needsSqsQueueHeartBeatRuleObj) {
+    /* Ensure that the heartbeat rule object is defined */
+    if (!props.sqsHeartBeatRuleName) {
+      throw new Error(
+        `Heartbeat rule object is not defined for state machine that requires it: ${props.stateMachineName}`
+      );
+    }
+    props.stateMachineObj.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['events:EnableRule', 'events:DisableRule'],
+        resources: [
+          `arn:aws:events:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:rule/${props.sqsHeartBeatRuleName}`,
         ],
       })
     );
@@ -263,20 +282,14 @@ function wireUpStateMachinePermissions(scope: Construct, props: WirePermissionsP
 
   /* Add permissions to list the handle copy jobs step function executions and to describe them */
   if (sfnRequirements.needsHandleCopyJobsListExecutions) {
-    // Ensure that the handle copy jobs step function object is defined
-    if (!props.handleCopyJobsSfnObject) {
-      throw new Error(
-        `Handle copy jobs step function object is not defined for state machine that requires it: ${props.stateMachineName}`
-      );
-    }
-
+    const handleCopyJobsSfnName: SfnName = 'handleCopyJobs';
     // List and describe executions for the handle copy jobs step function
     props.stateMachineObj.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ['states:ListExecutions', 'states:DescribeExecution'],
         resources: [
-          props.handleCopyJobsSfnObject.stateMachineObj.stateMachineArn,
-          `arn:aws:states:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:execution:${props.handleCopyJobsSfnObject.stateMachineObj.stateMachineName}:*`,
+          `arn:aws:states:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:stateMachine:${STACK_PREFIX}--${handleCopyJobsSfnName}`,
+          `arn:aws:states:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:execution:${STACK_PREFIX}--${handleCopyJobsSfnName}:*`,
         ],
       })
     );
@@ -291,6 +304,52 @@ function wireUpStateMachinePermissions(scope: Construct, props: WirePermissionsP
         },
       ],
       true
+    );
+  }
+
+  /* Add in SQS Permissions */
+  if (sfnRequirements.needsSqsPermissions) {
+    // Ability to send messages to a queue
+    props.copySqsQueue.grantSendMessages(props.stateMachineObj);
+  }
+
+  /* Add in needs start */
+  // Note we don't need to describe nor poll since we run these asynchronously
+  if (sfnRequirements.needsNestedStepFunctionStartExecutionPermissions) {
+    if (props.stateMachineName === 'handleCopyJobs') {
+      for (const nestedSfnName of sfnNameList) {
+        // For each of the active nested sfn functions
+        switch (nestedSfnName) {
+          case 'sendCopyJobsToQueue':
+          case 'saveJobAndInternalTaskToken':
+            props.stateMachineObj.addToRolePolicy(
+              new iam.PolicyStatement({
+                actions: ['states:StartExecution'],
+                resources: [
+                  `arn:aws:states:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:stateMachine:${STACK_PREFIX}--${nestedSfnName}`,
+                ],
+              })
+            );
+            break;
+        }
+      }
+    }
+  }
+
+  /* Give the durable lambda throttle copy jobs to run handleCopyJobs */
+  /* Runs asynchronously */
+  if (props.stateMachineName === 'handleCopyJobs') {
+    const handleCopyJobsLambda = <LambdaObject>(
+      props.lambdaFunctions.find((lambdaObject) => lambdaObject.lambdaName === 'throttleCopyJobs')
+    );
+    // List and describe executions for the handle copy jobs step function
+    handleCopyJobsLambda.lambdaFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['states:StartExecution'],
+        resources: [
+          `arn:aws:states:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:stateMachine:${STACK_PREFIX}--${props.stateMachineName}`,
+        ],
+      })
     );
   }
 }
@@ -359,32 +418,12 @@ export function buildAllStepFunctions(scope: Construct, props: BuildSfnsProps): 
 
   // Iterate over lambdaLayerToMapping and create the lambda functions
   for (const sfnName of sfnNameList) {
-    switch (sfnName) {
-      case 'sendHeartbeatExternal': {
-        /*
-        Find the sfn object for the handle copy jobs step function
-        */
-        const handleCopyJobsObject = sfnObjects.find(
-          (sfnObj) => sfnObj.stateMachineName === 'handleCopyJobs'
-        );
-        sfnObjects.push(
-          buildStepFunction(scope, {
-            stateMachineName: sfnName,
-            ...props,
-            handleCopyJobsSfnObject: handleCopyJobsObject,
-          })
-        );
-        break;
-      }
-      default: {
-        sfnObjects.push(
-          buildStepFunction(scope, {
-            stateMachineName: sfnName,
-            ...props,
-          })
-        );
-      }
-    }
+    sfnObjects.push(
+      buildStepFunction(scope, {
+        stateMachineName: sfnName,
+        ...props,
+      })
+    );
   }
 
   return sfnObjects;

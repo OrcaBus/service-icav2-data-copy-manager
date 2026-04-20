@@ -9,12 +9,10 @@ export interface AddSfnAsEventBridgeTargetProps {
 }
 
 export type EventBridgeTargetsNameList =
-  | 'internalCopyJobRuleToHandleCopyJobsSfn'
-  | 'internalTaskTokenRuleToSaveJobAndInternalTaskTokenSfn'
-  | 'externalCopyJobRuleToHandleCopyJobsSfn'
-  | 'externalCopyJobLegacyRuleToHandleCopyJobsSfn'
-  | 'internalHeartBeatScheduleRuleToSendHeartbeatSfn'
-  | 'externalHeartBeatScheduleRuleToSendHeartbeatSfn';
+  | 'externalCopyJobRuleToSendCopyJobsSfn'
+  | 'sqsHeartBeatScheduleRuleToSendHeartBeatSfn'
+  | 'internalHeartBeatScheduleRuleToSendHeartBeatSfn'
+  | 'externalHeartBeatScheduleRuleToSendHeartBeatSfn';
 
 export interface EventBridgeTargetsProps {
   eventBridgeRuleObjects: EventBridgeRuleObject[];
@@ -22,10 +20,8 @@ export interface EventBridgeTargetsProps {
 }
 
 export const eventBridgeTargetsNameList: Array<EventBridgeTargetsNameList> = [
-  'internalCopyJobRuleToHandleCopyJobsSfn',
-  'internalTaskTokenRuleToSaveJobAndInternalTaskTokenSfn',
-  'externalCopyJobRuleToHandleCopyJobsSfn',
-  'externalCopyJobLegacyRuleToHandleCopyJobsSfn',
-  'internalHeartBeatScheduleRuleToSendHeartbeatSfn',
-  'externalHeartBeatScheduleRuleToSendHeartbeatSfn',
+  'externalCopyJobRuleToSendCopyJobsSfn',
+  'sqsHeartBeatScheduleRuleToSendHeartBeatSfn',
+  'internalHeartBeatScheduleRuleToSendHeartBeatSfn',
+  'externalHeartBeatScheduleRuleToSendHeartBeatSfn',
 ];

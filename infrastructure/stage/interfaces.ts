@@ -10,9 +10,8 @@ export interface StatefulApplicationStackConfig extends cdk.StackProps {
   tableName: string;
   tableRemovalPolicy: RemovalPolicy;
 
-  /* Event stuff */
-  internalEventBusName: string;
-  internalEventBusDescription: string;
+  /* Sqs Stuff */
+  copyJobSqsQueueName: string;
 
   /* Notification stuff */
   slackTopicName: string;
@@ -32,9 +31,11 @@ export interface StatelessApplicationStackConfig extends cdk.StackProps {
 
   /* Event stuff */
   externalEventBusName: string;
-  internalEventBusName: string;
   eventDetailType: string;
   eventSource: string;
+
+  /* Sqs Stuff */
+  copyJobQueueName: string;
 
   /* Additional event stuff */
   icaEventPipeName: string;

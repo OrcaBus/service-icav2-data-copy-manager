@@ -6,16 +6,18 @@ import { Construct } from 'constructs';
 import { StatefulApplicationStackConfig } from './interfaces';
 
 import {
+  DEFAULT_COPY_JOB_QUEUE_TIMEOUT,
   DEFAULT_DLQ_ALARM_THRESHOLD,
   DEFAULT_EVENT_PIPE_NAME,
   DEFAULT_ICA_AWS_ACCOUNT_NUMBER,
   DEFAULT_ICA_QUEUE_VIZ_TIMEOUT,
   DEFAULT_ICA_SQS_NAME,
 } from './constants';
-import { createEventBridgePipe, getTopicArnFromTopicName } from './sqs';
+import { createEventBridgePipe, createMonitoredQueue, getTopicArnFromTopicName } from './sqs';
 import { buildTable } from './dynamodb';
-import { buildEventBus } from './event-bus';
 import { buildSchemas } from './event-schemas';
+import { Topic } from 'aws-cdk-lib/aws-sns';
+import { Duration } from 'aws-cdk-lib';
 
 export type StatefulApplicationStackProps = StatefulApplicationStackConfig & cdk.StackProps;
 
@@ -30,19 +32,30 @@ export class StatefulApplicationStack extends cdk.Stack {
       tableRemovalPolicy: props.tableRemovalPolicy,
     });
 
-    /* Event bus */
-    buildEventBus(this, {
-      eventBusName: props.internalEventBusName,
-      eventBusDescription: props.internalEventBusDescription,
+    // Get the slack topic, used for both queues
+    const slackTopic: Topic = Topic.fromTopicArn(
+      this,
+      'SlackTopic',
+      getTopicArnFromTopicName(props.slackTopicName)
+    ) as Topic;
+
+    /* Build the Handle Copy Job Queue */
+    // Buffer to launch ICA analysis requests
+    createMonitoredQueue(this, {
+      dlqMessageThreshold: 1,
+      queueName: props.copyJobSqsQueueName,
+      queueVizTimeout: DEFAULT_COPY_JOB_QUEUE_TIMEOUT,
+      slackTopic: slackTopic,
+      receiveMessageWaitTime: Duration.seconds(20),
     });
 
-    // Create the event pipe to join the ICA SQS queue to the event bus
+    /* Build the ICA Monitored Queue */
     createEventBridgePipe(this, {
       stepFunctionName: 'sendInternalTaskToken',
       icaEventPipeName: DEFAULT_EVENT_PIPE_NAME,
       icaQueueName: DEFAULT_ICA_SQS_NAME,
       icaQueueVizTimeout: DEFAULT_ICA_QUEUE_VIZ_TIMEOUT,
-      slackTopicArn: getTopicArnFromTopicName(props.slackTopicName),
+      slackTopic: slackTopic,
       dlqMessageThreshold: DEFAULT_DLQ_ALARM_THRESHOLD,
       icaAwsAccountNumber: DEFAULT_ICA_AWS_ACCOUNT_NUMBER,
     });

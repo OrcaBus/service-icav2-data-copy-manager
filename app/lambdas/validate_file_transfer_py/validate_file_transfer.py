@@ -22,12 +22,15 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 # Wrapica imports
-from wrapica.project_data import coerce_data_id_or_uri_to_project_data_obj
+from wrapica.project_data import (
+    coerce_data_id_or_uri_to_project_data_obj,
+    get_project_data_obj_by_id,
+    convert_project_data_obj_to_uri
+)
 
 # Orcabus layer imports
 from orcabus_api_tools.filemanager import get_file_object_from_s3_uri
 from icav2_tools import set_icav2_env_vars
-from orcabus_api_tools.filemanager.errors import S3FileNotFoundError
 
 
 def get_filesize_from_uri(uri: str) -> int:
@@ -73,6 +76,9 @@ def handler(event, context):
     file_size_in_bytes = event.get('fileSizeInBytes')
     output_uri = event.get('outputUri')
     destination_uri = event.get('destinationUri')
+
+    source_data_id = event.get('sourceDataId')
+    source_data_project_id = event.get('sourceDataProjectId')
     source_data_uri = event.get('sourceDataUri')
 
     # Check first one
@@ -93,12 +99,34 @@ def handler(event, context):
 
         # This will raise an error if the file does not exist
         destination_data_size = get_filesize_from_uri(destination_data_uri)
-
         source_data_size = get_filesize_from_uri(source_data_uri)
 
         if not destination_data_size == source_data_size:
             raise ValueError(
-                f"File size of destinationUri {destination_uri} ({destination_data_size}) does not match the "
+                f"File size of destinationUri {destination_data_uri} ({destination_data_size}) does not match the "
+                f"file size of sourceDataUri {source_data_uri} ({source_data_size})"
+            )
+
+    # Third one
+    elif destination_uri is not None and source_data_id is not None and source_data_project_id is not None:
+        source_data_object = get_project_data_obj_by_id(
+            project_id=source_data_project_id,
+            data_id=source_data_id,
+        )
+
+        source_data_uri = convert_project_data_obj_to_uri(
+            source_data_object
+        )
+
+        destination_data_uri = destination_uri + Path(urlparse(source_data_uri).path).name
+
+        # This will raise an error if the file does not exist
+        destination_data_size = get_filesize_from_uri(destination_data_uri)
+        source_data_size = source_data_object.data.details.file_size_in_bytes
+
+        if not destination_data_size == source_data_size:
+            raise ValueError(
+                f"File size of destinationUri {destination_data_uri} ({destination_data_size}) does not match the "
                 f"file size of sourceDataUri {source_data_uri} ({source_data_size})"
             )
 

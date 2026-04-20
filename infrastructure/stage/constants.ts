@@ -11,10 +11,6 @@ export const STEP_FUNCTIONS_DIR = path.join(APP_ROOT, 'step-function-templates')
 export const ECS_DIR = path.join(APP_ROOT, 'ecs');
 export const EVENT_SCHEMAS_DIR = path.join(APP_ROOT, 'event-schemas');
 
-/* Internal event bus constants */
-export const INTERNAL_EVENT_BUS_DESCRIPTION =
-  'Event bus for internal use only, i.e copying icav2 subfolders';
-
 /* Heartbeat constants */
 // Assumes heartbeat timeout is five minutes, so we need to make sure we
 // trigger a heartbeat event at least every three minutes as a buffer
@@ -22,6 +18,7 @@ export const INTERNAL_EVENT_BUS_DESCRIPTION =
 // We also need to hardcode the event bridge rule name to prevent
 // circular dependencies in the CDK
 export const DEFAULT_HEART_BEAT_INTERVAL = Duration.minutes(3);
+export const DEFAULT_HEART_BEAT_SQS_QUEUE_EVENT_BRIDGE_RULE_NAME = 'sqsQueueScheduleRule';
 export const DEFAULT_HEART_BEAT_INTERNAL_EVENT_BRIDGE_RULE_NAME = 'internalHeartBeatScheduleRule';
 export const DEFAULT_HEART_BEAT_EXTERNAL_EVENT_BRIDGE_RULE_NAME = 'externalHeartBeatScheduleRule';
 
@@ -33,11 +30,13 @@ export const DEFAULT_EVENT_PIPE_NAME = 'Icav2CopyJobEventPipe';
 // The SQS name should be noted since the ARN is required when
 // setting up the notifications of the project
 export const DEFAULT_ICA_SQS_NAME = 'Icav2CopyJobSqsQueue';
+export const DEFAULT_COPY_JOB_SQS_NAME = 'InternalIcav2CopyJobSqsQueue';
 
 export const DEFAULT_ICA_QUEUE_VIZ_TIMEOUT = Duration.seconds(30);
 export const DEFAULT_DLQ_ALARM_THRESHOLD = 1;
 export const DEFAULT_ICA_AWS_ACCOUNT_NUMBER = '079623148045';
-export const ICA_COPY_JOB_EVENT_CODE = 'ICA_JOB_001';
+export const DEFAULT_COPY_JOB_QUEUE_TIMEOUT = Duration.seconds(900); // 5 minutes
+export const DEFAULT_COPY_JOB_QUEUE_MAX_LAMBDA_CONCURRENCY = 15;
 
 /* Stack constants */
 export const STACK_PREFIX = 'icav2-data-copy';
@@ -53,7 +52,6 @@ export const SSM_PARAMETER_PATH_PREFIX = path.join(`/orcabus/services/${STACK_PR
 
 /* Event constants */
 export const EVENT_BUS_NAME_EXTERNAL = 'OrcaBusMain'; // Listen to the main event bus for external services
-export const EVENT_BUS_NAME_INTERNAL = 'OrcaBusICAv2DataCopyInternal'; // Events for internal use only, i.e copying subfolders
 export const EVENT_DETAIL_TYPE_EXTERNAL = 'ICAv2DataCopySync';
 export const EVENT_SOURCE = 'orcabus.icav2datacopymanager';
 

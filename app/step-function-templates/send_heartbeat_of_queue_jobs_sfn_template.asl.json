@@ -1,0 +1,175 @@
+{
+  "Comment": "A description of my state machine",
+  "StartAt": "Get all task tokens count",
+  "States": {
+    "Get all task tokens count": {
+      "Type": "Task",
+      "Arguments": {
+        "TableName": "${__table_name__}",
+        "FilterExpression": "#name = :value",
+        "ExpressionAttributeNames": {
+          "#name": "id_type"
+        },
+        "ExpressionAttributeValues": {
+          ":value": {
+            "S": "TASK_TOKEN_SQS"
+          }
+        },
+        "Select": "COUNT"
+      },
+      "Resource": "arn:aws:states:::aws-sdk:dynamodb:scan",
+      "Next": "Has tokens",
+      "Output": {
+        "taskTokenCount": "{% $states.result.Count %}"
+      }
+    },
+    "Has tokens": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Next": "Get all task tokens",
+          "Condition": "{% $states.input.taskTokenCount > 0 %}",
+          "Assign": {
+            "exclusiveStartKey": null
+          }
+        }
+      ],
+      "Default": "Turn off scheduler"
+    },
+    "Get all task tokens": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:dynamodb:scan",
+      "Next": "For all task tokens (batched)",
+      "Output": {
+        "taskTokenList": "{% [$states.result.Items.(id.S)] %}"
+      },
+      "Assign": {
+        "lastEvaluatedKey": "{% $states.result.LastEvaluatedKey ? $states.result.LastEvaluatedKey : null %}"
+      },
+      "Arguments": "{% {\n  \"TableName\": \"${__table_name__}\",\n  \"FilterExpression\": \"#name = :value\",\n  \"ExpressionAttributeNames\": {\n    \"#name\": \"id_type\"\n  },\n  \"ExpressionAttributeValues\": {\n    \":value\": {\n      \"S\": \"TASK_TOKEN_SQS\"\n    }\n  },\n  \"Limit\": 100,\n  \"ExclusiveStartKey\": $exclusiveStartKey\n} ~>\n/* Remove any keys with values */\n$sift(function($v, $k){$v != null}) %}"
+    },
+    "Turn off scheduler": {
+      "Type": "Task",
+      "Arguments": {
+        "Name": "${__sqs_heartbeat_scheduler_rule_name__}"
+      },
+      "Resource": "arn:aws:states:::aws-sdk:eventbridge:disableRule",
+      "Retry": [
+        {
+          "ErrorEquals": ["EventBridge.InternalException"],
+          "BackoffRate": 2,
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "Comment": "Handle internal event bridge exception"
+        }
+      ],
+      "End": true
+    },
+    "For all task tokens (batched)": {
+      "Type": "Map",
+      "Label": "Foralltasktokensbatched",
+      "MaxConcurrency": 1,
+      "Items": "{% $states.input.taskTokenList %}",
+      "ItemBatcher": {
+        "MaxItemsPerBatch": 10
+      },
+      "ItemProcessor": {
+        "ProcessorConfig": {
+          "Mode": "DISTRIBUTED",
+          "ExecutionType": "STANDARD"
+        },
+        "StartAt": "For each task token",
+        "States": {
+          "For each task token": {
+            "Type": "Map",
+            "Items": "{% $states.input.Items %}",
+            "ItemSelector": {
+              "taskTokenMapIter": "{% $states.context.Map.Item.Value %}"
+            },
+            "ItemProcessor": {
+              "ProcessorConfig": {
+                "Mode": "INLINE"
+              },
+              "StartAt": "Set map vars",
+              "States": {
+                "Set map vars": {
+                  "Type": "Pass",
+                  "Next": "Get task token",
+                  "Assign": {
+                    "taskTokenMapIter": "{% $states.input.taskTokenMapIter %}"
+                  }
+                },
+                "Get task token": {
+                  "Type": "Task",
+                  "Resource": "arn:aws:states:::dynamodb:getItem",
+                  "Arguments": {
+                    "TableName": "${__table_name__}",
+                    "Key": {
+                      "id": {
+                        "S": "{% $taskTokenMapIter %}"
+                      },
+                      "id_type": {
+                        "S": "TASK_TOKEN_SQS"
+                      }
+                    }
+                  },
+                  "Next": "Send heartbeat to task token"
+                },
+                "Send heartbeat to task token": {
+                  "Type": "Task",
+                  "Arguments": {
+                    "TaskToken": "{% $taskTokenMapIter %}"
+                  },
+                  "Resource": "arn:aws:states:::aws-sdk:sfn:sendTaskHeartbeat",
+                  "End": true,
+                  "Catch": [
+                    {
+                      "ErrorEquals": ["Sfn.TaskTimedOutException"],
+                      "Next": "Delete task token"
+                    }
+                  ]
+                },
+                "Delete task token": {
+                  "Type": "Task",
+                  "Resource": "arn:aws:states:::dynamodb:deleteItem",
+                  "Arguments": {
+                    "TableName": "${__table_name__}",
+                    "Key": {
+                      "id": {
+                        "S": "{% $taskTokenMapIter %}"
+                      },
+                      "id_type": {
+                        "S": "TASK_TOKEN_SQS"
+                      }
+                    }
+                  },
+                  "End": true
+                }
+              }
+            },
+            "End": true
+          }
+        }
+      },
+      "Output": {},
+      "Next": "More tokens left"
+    },
+    "More tokens left": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Next": "Get all task tokens",
+          "Condition": "{% $lastEvaluatedKey ? true : false %}",
+          "Assign": {
+            "exclusiveStartKey": "{% $lastEvaluatedKey %}"
+          }
+        }
+      ],
+      "Default": "Success"
+    },
+    "Success": {
+      "Type": "Succeed"
+    }
+  },
+  "QueryLanguage": "JSONata"
+}
