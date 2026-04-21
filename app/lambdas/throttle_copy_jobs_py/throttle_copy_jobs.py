@@ -7,7 +7,7 @@ SQS queue forwards the request onto here and we don't return until the copy job 
 
 This way we can throttle through the requests to prevent overload of the ICAv2 API
 
-We take in one request per lambda and run a maximum of 50 lambdas simultaneously.
+We take in one request per lambda and run a maximum of 15 lambdas simultaneously.
 
 Once the request comes back we delete the queue from the database too
 
