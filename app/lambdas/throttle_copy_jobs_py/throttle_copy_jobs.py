@@ -24,7 +24,7 @@ from typing import Dict, Any
 # Durable context imports
 from aws_durable_execution_sdk_python import (
     DurableContext,
-    durable_execution
+    durable_execution,
 )
 from aws_durable_execution_sdk_python.config import (
     Duration, WaitForCallbackConfig
@@ -91,7 +91,7 @@ def handler(event, context: DurableContext):
 
     # Not sure what this will look like from the sqs event source
     for record in event.get("Records", []):
-        record_body = json.loads(record.get("body", {}))
+        record_body = json.loads(record.get("body", "{}"))
         # Check if the event contains the required keys
         required_keys = ['payload']
         for key in required_keys:
