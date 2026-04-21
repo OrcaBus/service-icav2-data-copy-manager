@@ -35,7 +35,7 @@ export const DEFAULT_COPY_JOB_SQS_NAME = 'InternalIcav2CopyJobSqsQueue';
 export const DEFAULT_ICA_QUEUE_VIZ_TIMEOUT = Duration.seconds(30);
 export const DEFAULT_DLQ_ALARM_THRESHOLD = 1;
 export const DEFAULT_ICA_AWS_ACCOUNT_NUMBER = '079623148045';
-export const DEFAULT_COPY_JOB_QUEUE_TIMEOUT = Duration.seconds(900); // 5 minutes
+export const DEFAULT_COPY_JOB_QUEUE_TIMEOUT = Duration.seconds(900); // 15 minutes
 export const DEFAULT_COPY_JOB_QUEUE_MAX_LAMBDA_CONCURRENCY = 15;
 
 /* Stack constants */
