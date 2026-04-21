@@ -89,7 +89,7 @@ function createStateMachineDefinitionSubstitutions(props: BuildSfnProps): {
 
   /* Do we need nested sfn arn executions */
   if (sfnRequirements.needsNestedStepFunctionStartExecutionPermissions) {
-    if (props.stateMachineName == 'handleCopyJobs') {
+    if (props.stateMachineName === 'handleCopyJobs') {
       for (const nestedSfnName of sfnNameList) {
         // For each of the active nested sfn functions
         // Add in the definition substitution
