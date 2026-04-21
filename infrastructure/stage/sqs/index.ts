@@ -2,10 +2,9 @@ import * as cdk from 'aws-cdk-lib';
 import {
   IcaEventPipeConstructProps,
   IcaSqsEventPipeProps,
-  IcaSqsQueueConstructProps,
+  SqsQueueConstructProps,
 } from './interfaces';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
-import { Topic } from 'aws-cdk-lib/aws-sns';
 import { Construct } from 'constructs';
 import { MonitoredQueue } from 'sqs-dlq-monitoring';
 import * as iam from 'aws-cdk-lib/aws-iam';
@@ -24,27 +23,24 @@ export function getTopicArnFromTopicName(topicName: string): string {
 
 // Create the INPUT SQS queue that will receive the ICA events
 // This should have a DLQ and be monitored via CloudWatch alarm and Slack notifications
-function createMonitoredQueue(scope: Construct, props: IcaSqsQueueConstructProps): Queue {
+export function createMonitoredQueue(scope: Construct, props: SqsQueueConstructProps): Queue {
   // Note: the construct MonitoredQueue demands a "Topic" construct as it usually modifies the topic adding subscriptions.
   // However, our use case, as we don't add any additional subscriptions, does not require topic modification, so we can pass on an "ITopic" as "Topic".
-  const topic: Topic = Topic.fromTopicArn(scope, 'SlackTopic', props.slackTopicArn) as Topic;
-
-  const mq = new MonitoredQueue(scope, props.icaQueueName, {
+  const mq = new MonitoredQueue(scope, props.queueName, {
     queueProps: {
-      queueName: props.icaQueueName,
+      queueName: props.queueName,
       enforceSSL: true,
-      visibilityTimeout: props.icaQueueVizTimeout,
+      visibilityTimeout: props.queueVizTimeout,
+      receiveMessageWaitTime: props.receiveMessageWaitTime,
     },
     dlqProps: {
-      queueName: props.icaQueueName + '-dlq',
+      queueName: props.queueName + '-dlq',
       enforceSSL: true,
-      visibilityTimeout: props.icaQueueVizTimeout,
+      visibilityTimeout: props.queueVizTimeout,
     },
     messageThreshold: props.dlqMessageThreshold,
-    topic: topic,
+    topic: props.slackTopic,
   });
-  mq.queue.grantSendMessages(new iam.AccountPrincipal(props.icaAwsAccountNumber));
-
   return mq.queue;
 }
 
@@ -78,14 +74,16 @@ function createIcaSqsPipe(scope: Construct, props: IcaEventPipeConstructProps) {
 export function createEventBridgePipe(scope: Construct, props: IcaSqsEventPipeProps) {
   /* Part 1 - Create the monitored queue */
   const monitoredQueue = createMonitoredQueue(scope, {
-    icaQueueName: props.icaQueueName,
-    slackTopicArn: props.slackTopicArn,
-    icaAwsAccountNumber: props.icaAwsAccountNumber,
-    icaQueueVizTimeout: props.icaQueueVizTimeout,
+    queueName: props.icaQueueName,
+    slackTopic: props.slackTopic,
+    queueVizTimeout: props.icaQueueVizTimeout,
     dlqMessageThreshold: props.dlqMessageThreshold,
   });
 
-  /* Part 2 - Create the event pipe */
+  /* Part 2 - Give permission for ICA to post to the queue */
+  monitoredQueue.grantSendMessages(new iam.AccountPrincipal(props.icaAwsAccountNumber));
+
+  /* Part 3 - Create the event pipe */
   createIcaSqsPipe(scope, {
     icaEventPipeName: props.icaEventPipeName,
     icaSqsQueue: monitoredQueue,

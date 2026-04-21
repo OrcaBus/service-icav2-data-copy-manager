@@ -2,23 +2,27 @@
 import { StateMachine } from 'aws-cdk-lib/aws-stepfunctions';
 import { LambdaName, LambdaObject } from '../lambda/interfaces';
 import { EventBridgeNameList } from '../event-rules/interfaces';
-import { IEventBus } from 'aws-cdk-lib/aws-events';
 import { ITableV2 } from 'aws-cdk-lib/aws-dynamodb';
 import { EcsTaskObject } from '../ecs/interfaces';
+import { IQueue } from 'aws-cdk-lib/aws-sqs';
 
 export type SfnName =
   | 'handleCopyJobs'
   | 'saveJobAndInternalTaskToken'
-  | 'sendInternalTaskToken'
+  | 'sendCopyJobsToQueue'
+  | 'sendHeartbeatExternal'
   | 'sendHeartbeatInternal'
-  | 'sendHeartbeatExternal';
+  | 'sendHeartbeatOfQueueJobs'
+  | 'sendInternalTaskToken';
 
 export const sfnNameList: SfnName[] = [
   'handleCopyJobs',
   'saveJobAndInternalTaskToken',
-  'sendInternalTaskToken',
-  'sendHeartbeatInternal',
+  'sendCopyJobsToQueue',
   'sendHeartbeatExternal',
+  'sendHeartbeatInternal',
+  'sendHeartbeatOfQueueJobs',
+  'sendInternalTaskToken',
 ];
 
 export interface SfnProps {
@@ -31,31 +35,30 @@ export interface SfnObject extends SfnProps {
   stateMachineObj: StateMachine;
 }
 
-export const HandleCopyJobsLambdaList: LambdaName[] = [
-  'convertSourceUriFolderToUriList',
-  'findSinglePartFiles',
-  'generateCopyJobList',
-  'getExternalSourceFileMetadata',
-  'getRenamingMapParams',
-  'getSourceFileSize',
-  'launchIcav2Copy',
-  'renameFile',
-  'uploadFromFilemanager',
-  'uploadSinglePartFile',
-  'validateFileTransfer',
-];
-
-export const SendHeartbeatInternalJobsLambdaList: LambdaName[] = ['checkJobStatus'];
+export const stepFunctionToLambdaMap: { [key in SfnName]: Array<LambdaName> } = {
+  handleCopyJobs: [
+    'convertSourceUriFolderToUriList',
+    'findSinglePartFiles',
+    'generateCopyJobList',
+    'getExternalSourceFileMetadata',
+    'getRenamingMapParams',
+    'getSourceFileSize',
+    'launchIcav2Copy',
+    'renameFile',
+    'unlockCallbackId',
+    'uploadFromFilemanager',
+    'uploadSinglePartFile',
+    'validateFileTransfer',
+  ],
+  saveJobAndInternalTaskToken: [],
+  sendCopyJobsToQueue: [],
+  sendHeartbeatExternal: [],
+  sendHeartbeatInternal: ['checkJobStatus'],
+  sendHeartbeatOfQueueJobs: [],
+  sendInternalTaskToken: [],
+};
 
 export interface SfnRequirementsProps {
-  /* Lambdas */
-  requiredLambdaNameList?: LambdaName[];
-
-  /* Event stuff */
-  needsInternalEventBus?: boolean;
-  needsIcav2CopyServiceEventSource?: boolean;
-  needsIcav2CopyServiceDetailType?: boolean;
-
   /* ECS Stuff */
   needsEcsPermissions?: boolean;
 
@@ -63,6 +66,7 @@ export interface SfnRequirementsProps {
   needsTableObj?: boolean;
 
   /* Event Bridge Stuff */
+  needsSqsQueueHeartBeatRuleObj?: boolean;
   needsInternalHeartBeatRuleObj?: boolean;
   needsExternalHeartBeatRuleObj?: boolean;
 
@@ -77,18 +81,18 @@ export interface SfnRequirementsProps {
 
   /* Check if the step function needs to be an express step function */
   isExpress?: boolean;
+
+  /* Sqs Stuff */
+  needsSqsPermissions?: boolean;
+
+  /* Nested Step Function stuff */
+  needsNestedStepFunctionStartExecutionPermissions?: boolean;
 }
 
 export const SfnRequirementsMapType: { [key in SfnName]: SfnRequirementsProps } = {
   // Handle copy jobs
   handleCopyJobs: {
-    /* Lambdas */
-    requiredLambdaNameList: HandleCopyJobsLambdaList,
-
     /* Event stuff */
-    needsInternalEventBus: true,
-    needsIcav2CopyServiceEventSource: true,
-    needsIcav2CopyServiceDetailType: true,
     needsExternalHeartBeatRuleObj: true,
 
     /* ECS Stuff */
@@ -96,6 +100,22 @@ export const SfnRequirementsMapType: { [key in SfnName]: SfnRequirementsProps } 
 
     /* Task Token permissions */
     needsTaskTokenUpdatePermissions: true,
+
+    /* Nested Step Function permissions */
+    needsNestedStepFunctionStartExecutionPermissions: true,
+  },
+  sendCopyJobsToQueue: {
+    /* Table stuff */
+    needsTableObj: true,
+
+    /* Rule Stuff */
+    needsSqsQueueHeartBeatRuleObj: true,
+
+    /* SQS Send Message Permissions */
+    needsSqsPermissions: true,
+
+    /* Express: Yes, quick in-and-out */
+    isExpress: true,
   },
   // Save job and internal task token
   saveJobAndInternalTaskToken: {
@@ -104,6 +124,50 @@ export const SfnRequirementsMapType: { [key in SfnName]: SfnRequirementsProps } 
 
     /* Event rule stuff */
     needsInternalHeartBeatRuleObj: true,
+
+    /* Express: Yes, quick in-and-out */
+    isExpress: true,
+  },
+  // Send heartbeat internal
+  sendHeartbeatInternal: {
+    /* Table stuff */
+    needsTableObj: true,
+
+    /* Rule Stuff */
+    needsInternalHeartBeatRuleObj: true,
+
+    /* Needs task token update permissions */
+    needsTaskTokenUpdatePermissions: true,
+
+    /* Needs distributed map policies */
+    needsDistributedMapPolicies: true,
+  },
+  // Send heartbeat external
+  sendHeartbeatExternal: {
+    /* Rule Stuff */
+    needsExternalHeartBeatRuleObj: true,
+
+    /* Needs task token update permissions */
+    needsTaskTokenUpdatePermissions: true,
+
+    /* Needs distributed map policies */
+    needsDistributedMapPolicies: true,
+
+    /* Needs handle copy jobs list executions */
+    needsHandleCopyJobsListExecutions: true,
+  },
+  sendHeartbeatOfQueueJobs: {
+    /* Table Stuff */
+    needsTableObj: true,
+
+    /* Rule Stuff */
+    needsSqsQueueHeartBeatRuleObj: true,
+
+    /* Needs task token update permissions */
+    needsTaskTokenUpdatePermissions: true,
+
+    /* Needs distributed map policies */
+    needsDistributedMapPolicies: true,
   },
   // Send internal task token
   sendInternalTaskToken: {
@@ -116,37 +180,6 @@ export const SfnRequirementsMapType: { [key in SfnName]: SfnRequirementsProps } 
     /* This comes from an sqs queue so it needs to be an internal sfn */
     isExpress: true,
   },
-  // Send heartbeat internal
-  sendHeartbeatInternal: {
-    /* Lambda name list */
-    requiredLambdaNameList: SendHeartbeatInternalJobsLambdaList,
-
-    /* Table stuff */
-    needsTableObj: true,
-
-    /* Event Stuff */
-    needsInternalHeartBeatRuleObj: true,
-
-    /* Needs task token update permissions */
-    needsTaskTokenUpdatePermissions: true,
-
-    /* Needs distributed map policies */
-    needsDistributedMapPolicies: true,
-  },
-  // Send heartbeat external
-  sendHeartbeatExternal: {
-    /* Event Stuff */
-    needsExternalHeartBeatRuleObj: true,
-
-    /* Needs task token update permissions */
-    needsTaskTokenUpdatePermissions: true,
-
-    /* Needs distributed map policies */
-    needsDistributedMapPolicies: true,
-
-    /* Needs handle copy jobs list executions */
-    needsHandleCopyJobsListExecutions: true,
-  },
 };
 
 export type internalHeartBeatRuleNameList = Extract<
@@ -157,15 +190,11 @@ export type externalHeartBeatRuleNameList = Extract<
   EventBridgeNameList,
   'externalHeartBeatScheduleRule'
 >;
+export type sqsHeartBeatRuleNameList = Extract<EventBridgeNameList, 'sqsQueueScheduleRule'>;
 
 export interface BuildSfnProps extends SfnProps {
   /* Lambdas */
-  lambdas?: LambdaObject[];
-
-  /* Event Stuff */
-  internalEventBus?: IEventBus;
-  icav2CopyServiceEventSource?: string;
-  icav2CopyServiceDetailType?: string;
+  lambdaFunctions: LambdaObject[];
 
   /* ECS Stuff */
   ecsFargateTaskObjects: EcsTaskObject[];
@@ -174,11 +203,12 @@ export interface BuildSfnProps extends SfnProps {
   tableObj?: ITableV2;
 
   /* Event Bridge Stuff */
+  sqsHeartBeatRuleName?: sqsHeartBeatRuleNameList;
   internalHeartBeatRuleName?: internalHeartBeatRuleNameList;
   externalHeartBeatRuleName?: externalHeartBeatRuleNameList;
 
-  /* Other sfns */
-  handleCopyJobsSfnObject?: SfnObject;
+  /* Sqs Queue Objects */
+  copySqsQueue: IQueue;
 }
 
 export type BuildSfnsProps = Omit<BuildSfnProps, 'stateMachineName'>;

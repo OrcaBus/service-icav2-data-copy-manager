@@ -10,7 +10,8 @@
         "sourceUriList": "{% $states.input.payload.sourceUriList %}",
         "destinationUri": "{% $states.input.payload.destinationUri %}",
         "taskToken": "{% $states.input.taskToken ? $states.input.taskToken : null %}",
-        "renamingMapList": "{% $states.input.payload.renamingMapList ? $states.input.payload.renamingMapList : null %}"
+        "renamingMapList": "{% $states.input.payload.renamingMapList ? $states.input.payload.renamingMapList : null %}",
+        "callbackId": "{% $states.input.callbackId ? $states.input.callbackId : null %}"
       }
     },
     "Turn on rule": {
@@ -75,13 +76,38 @@
           "IntervalSeconds": 60
         }
       ],
-      "Next": "Run top level and recursive in parallel",
+      "Next": "Unlock Callback id",
       "Assign": {
         "sourceDataList": "{% $states.result.Payload.sourceDataList %}",
         "destinationData": "{% $states.result.Payload.destinationData %}",
         "recursiveCopyJobsUriList": "{% $states.result.Payload.recursiveCopyJobsUriList %}",
         "externalSourceDataUriList": "{% $states.result.Payload.externalSourceDataUriList %}"
       }
+    },
+    "Unlock Callback id": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Arguments": {
+        "FunctionName": "${__unlock_callback_id_lambda_function_arn__}",
+        "Payload": {
+          "callbackId": "{% $callbackId %}"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Next": "Run top level and recursive in parallel"
     },
     "Run top level and recursive in parallel": {
       "Type": "Parallel",
@@ -401,23 +427,17 @@
                       "Assign": {
                         "jobId": "{% $states.result.Payload.jobId %}"
                       },
-                      "Next": "Wait Job Completion"
+                      "Next": "Wait Job Completion (sfn)"
                     },
-                    "Wait Job Completion": {
+                    "Wait Job Completion (sfn)": {
                       "Type": "Task",
-                      "Resource": "arn:aws:states:::events:putEvents.waitForTaskToken",
+                      "Resource": "arn:aws:states:::states:startExecution.waitForTaskToken",
                       "Arguments": {
-                        "Entries": [
-                          {
-                            "Detail": {
-                              "jobId": "{% $jobId %}",
-                              "taskToken": "{% $states.context.Task.Token %}"
-                            },
-                            "DetailType": "${__event_detail_type__}",
-                            "EventBusName": "${__internal_event_bus_name__}",
-                            "Source": "${__event_source__}"
-                          }
-                        ]
+                        "StateMachineArn": "${__save_job_and_internal_task_token_state_machine_arn__}",
+                        "Input": {
+                          "jobId": "{% $jobId %}",
+                          "taskToken": "{% $states.context.Task.Token %}"
+                        }
                       },
                       "Catch": [
                         {
@@ -428,8 +448,7 @@
                           "Next": "Failed with retryCounter > 3"
                         }
                       ],
-                      "End": true,
-                      "HeartbeatSeconds": 300
+                      "End": true
                     },
                     "Failed with retryCounter > 3": {
                       "Type": "Choice",
@@ -518,41 +537,26 @@
                         "IntervalSeconds": 60
                       }
                     ],
-                    "Next": "Launch copy job sync",
+                    "Next": "Send copy job to queue recursively",
                     "Output": {
                       "sourceUriListIter": "{% $states.result.Payload.sourceUriList %}",
                       "destinationUriIter": "{% $states.input.destinationUriIter %}"
                     }
                   },
-                  "Launch copy job sync": {
+                  "Send copy job to queue recursively": {
                     "Type": "Task",
-                    "Resource": "arn:aws:states:::events:putEvents.waitForTaskToken",
+                    "Resource": "arn:aws:states:::states:startExecution.waitForTaskToken",
                     "Arguments": {
-                      "Entries": [
-                        {
-                          "Detail": {
-                            "payload": {
-                              "sourceUriList": "{% $states.input.sourceUriListIter %}",
-                              "destinationUri": "{% $states.input.destinationUriIter %}"
-                            },
-                            "taskToken": "{% $states.context.Task.Token %}"
-                          },
-                          "DetailType": "${__event_detail_type__}",
-                          "EventBusName": "${__internal_event_bus_name__}",
-                          "Source": "${__event_source__}"
-                        }
-                      ]
-                    },
-                    "End": true,
-                    "Retry": [
-                      {
-                        "ErrorEquals": ["States.HeartbeatTimeout"],
-                        "BackoffRate": 2,
-                        "IntervalSeconds": 1,
-                        "MaxAttempts": 3
+                      "StateMachineArn": "${__send_copy_jobs_to_queue_state_machine_arn__}",
+                      "Input": {
+                        "payload": {
+                          "sourceUriList": "{% $states.input.sourceUriListIter %}",
+                          "destinationUri": "{% $states.input.destinationUriIter %}"
+                        },
+                        "taskToken": "{% $states.context.Task.Token %}"
                       }
-                    ],
-                    "HeartbeatSeconds": 3600
+                    },
+                    "End": true
                   }
                 }
               },
@@ -729,7 +733,8 @@
                       "FunctionName": "${__validate_file_transfer_lambda_function_arn__}",
                       "Payload": {
                         "destinationUri": "{% $destinationUri %}",
-                        "sourceDataUri": "{% $states.input %}"
+                        "sourceDataProjectId": "{% $states.input.projectId %}",
+                        "sourceDataId": "{% $states.input.dataId %}"
                       }
                     },
                     "Retry": [
@@ -738,7 +743,8 @@
                           "Lambda.ServiceException",
                           "Lambda.AWSLambdaException",
                           "Lambda.SdkClientException",
-                          "Lambda.TooManyRequestsException"
+                          "Lambda.TooManyRequestsException",
+                          "States.TaskFailed"
                         ],
                         "IntervalSeconds": 1,
                         "MaxAttempts": 3,
@@ -813,7 +819,22 @@
           "Comment": "Has renaming map"
         }
       ],
-      "Default": "Send External Task Token Success"
+      "Default": "Task Token Not Null"
+    },
+    "Task Token Not Null": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Next": "Send External Task Token Success",
+          "Condition": "{% $taskToken ? true : false %}",
+          "Comment": "Task Token Not null"
+        }
+      ],
+      "Default": "Pass"
+    },
+    "Pass": {
+      "Type": "Pass",
+      "End": true
     },
     "For object in renaming map": {
       "Type": "Map",
@@ -971,7 +992,7 @@
         }
       },
       "Items": "{% $renamingMapList %}",
-      "Next": "Send External Task Token Success"
+      "Next": "Task Token Not Null"
     },
     "Send External Task Token Success": {
       "Type": "Task",

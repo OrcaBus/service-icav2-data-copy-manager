@@ -69,16 +69,16 @@ def submit_copy_job(dest_project_data_obj: ProjectData, source_project_data_objs
         )
     )
 
-    return project_data_copy_batch_handler(
+    return str(project_data_copy_batch_handler(
         source_data_ids=source_data_ids,
         destination_project_id=dest_project_data_obj.project_id,
         destination_folder_path=Path(dest_project_data_obj.data.details.path)
-    ).id
+    ).id)
 
 
 def delete_existing_partial_data(
         dest_project_data_obj: ProjectData,
-        source_project_data_obj_list: List[ProjectData] = None
+        source_project_data_obj_list: List[ProjectData]
 ):
     # Source data names
     source_data_names = list(map(

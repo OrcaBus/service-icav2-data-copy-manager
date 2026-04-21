@@ -6,12 +6,14 @@ import * as events from 'aws-cdk-lib/aws-events';
 // Application imports
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as secretsManager from 'aws-cdk-lib/aws-secretsmanager';
+import * as sqs from 'aws-cdk-lib/aws-sqs';
 
 // Local imports
 import { StatelessApplicationStackConfig } from './interfaces';
 import {
   DEFAULT_HEART_BEAT_EXTERNAL_EVENT_BRIDGE_RULE_NAME,
   DEFAULT_HEART_BEAT_INTERNAL_EVENT_BRIDGE_RULE_NAME,
+  DEFAULT_HEART_BEAT_SQS_QUEUE_EVENT_BRIDGE_RULE_NAME,
 } from './constants';
 import { NagSuppressions } from 'cdk-nag';
 import { buildAllLambdas } from './lambda';
@@ -20,6 +22,7 @@ import { buildAllStepFunctions } from './step-functions';
 import { buildAllEventBridgeTargets } from './event-targets';
 import { StageName } from '@orcabus/platform-cdk-constructs/shared-config/accounts';
 import { buildAllEcsFargateTasks } from './ecs';
+import { IQueue } from 'aws-cdk-lib/aws-sqs';
 
 export type StatelessApplicationStackProps = StatelessApplicationStackConfig & cdk.StackProps;
 
@@ -38,11 +41,6 @@ export class StatelessApplicationStack extends cdk.Stack {
       this,
       props.externalEventBusName,
       props.externalEventBusName
-    );
-    const internalEventBusObject = events.EventBus.fromEventBusName(
-      this,
-      props.internalEventBusName,
-      props.internalEventBusName
     );
 
     // Get the icav2 secret
@@ -64,15 +62,25 @@ export class StatelessApplicationStack extends cdk.Stack {
       props.hostnameSsmParameterName
     );
 
+    // Get the internal SQS Queue from props
+    const copyJobQueue: IQueue = sqs.Queue.fromQueueArn(
+      this,
+      props.copyJobQueueName,
+      `arn:aws:sqs:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:${props.copyJobQueueName}`
+    );
+
     // Build the lambdas
-    const lambdaObjects = buildAllLambdas(this);
+    const lambdaObjects = buildAllLambdas(this, {
+      handleCopyJobSfnName: 'handleCopyJobs',
+      tableObj: dynamodbTable,
+      copyJobQueue: copyJobQueue,
+    });
 
     // Build event bridge rules
     // We need to do this before the step functions are created
     // Since some of the step functions will be granted permissions to disable / enable
     // The heartbeat rule.
     const eventBridgeRuleObjects = buildEventBridgeRules(this, {
-      internalEventBus: internalEventBusObject,
       externalEventBus: externalEventBusObject,
       eventSource: props.eventSource,
       eventDetailType: props.eventDetailType,
@@ -87,14 +95,22 @@ export class StatelessApplicationStack extends cdk.Stack {
 
     // Build the step functions
     const stepFunctionObjects = buildAllStepFunctions(this, {
-      lambdas: lambdaObjects,
-      internalEventBus: internalEventBusObject,
-      icav2CopyServiceEventSource: props.eventSource,
-      icav2CopyServiceDetailType: props.eventDetailType,
+      /* Lambdas */
+      lambdaFunctions: lambdaObjects,
+
+      /* Table stuff */
       tableObj: dynamodbTable,
+
+      /* Ecs stuff */
       ecsFargateTaskObjects: ecsFargateTasks,
+
+      /* Event rule stuff */
+      sqsHeartBeatRuleName: DEFAULT_HEART_BEAT_SQS_QUEUE_EVENT_BRIDGE_RULE_NAME,
       internalHeartBeatRuleName: DEFAULT_HEART_BEAT_INTERNAL_EVENT_BRIDGE_RULE_NAME,
       externalHeartBeatRuleName: DEFAULT_HEART_BEAT_EXTERNAL_EVENT_BRIDGE_RULE_NAME,
+
+      /* SQS Rule stuff */
+      copySqsQueue: copyJobQueue,
     });
 
     // Add the event-bridge rules

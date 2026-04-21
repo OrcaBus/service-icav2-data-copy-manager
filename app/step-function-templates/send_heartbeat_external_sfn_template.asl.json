@@ -79,7 +79,22 @@
                   "Output": {
                     "taskToken": "{% $parse($states.result.Input) ~> $lookup('taskToken') %}"
                   },
-                  "Next": "Send task heartbeat of running copy job"
+                  "Next": "Task Token is not null"
+                },
+                "Task Token is not null": {
+                  "Type": "Choice",
+                  "Choices": [
+                    {
+                      "Next": "Send task heartbeat of running copy job",
+                      "Condition": "{% $states.input.taskToken ? true : false %}",
+                      "Comment": "Has task token"
+                    }
+                  ],
+                  "Default": "Pass (1)"
+                },
+                "Pass (1)": {
+                  "Type": "Pass",
+                  "End": true
                 },
                 "Send task heartbeat of running copy job": {
                   "Type": "Task",
@@ -89,7 +104,7 @@
                   "Resource": "arn:aws:states:::aws-sdk:sfn:sendTaskHeartbeat",
                   "Catch": [
                     {
-                      "ErrorEquals": ["Sfn.TaskTimedOutException"],
+                      "ErrorEquals": ["Sfn.TaskTimedOutException", "Sfn.InvalidTokenException"],
                       "Next": "Pass"
                     }
                   ],
