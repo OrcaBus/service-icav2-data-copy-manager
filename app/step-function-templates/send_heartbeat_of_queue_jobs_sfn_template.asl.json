@@ -124,7 +124,7 @@
                   "End": true,
                   "Catch": [
                     {
-                      "ErrorEquals": ["Sfn.TaskTimedOutException"],
+                      "ErrorEquals": ["Sfn.TaskTimedOutException", "Sfn.InvalidTokenException"],
                       "Next": "Delete task token"
                     }
                   ]
