@@ -94,26 +94,10 @@
               "States": {
                 "Set map vars": {
                   "Type": "Pass",
-                  "Next": "Get task token",
+                  "Next": "Send heartbeat to task token",
                   "Assign": {
                     "taskTokenMapIter": "{% $states.input.taskTokenMapIter %}"
                   }
-                },
-                "Get task token": {
-                  "Type": "Task",
-                  "Resource": "arn:aws:states:::dynamodb:getItem",
-                  "Arguments": {
-                    "TableName": "${__table_name__}",
-                    "Key": {
-                      "id": {
-                        "S": "{% $taskTokenMapIter %}"
-                      },
-                      "id_type": {
-                        "S": "TASK_TOKEN_SQS"
-                      }
-                    }
-                  },
-                  "Next": "Send heartbeat to task token"
                 },
                 "Send heartbeat to task token": {
                   "Type": "Task",
