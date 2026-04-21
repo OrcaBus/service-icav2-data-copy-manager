@@ -18,7 +18,6 @@ import { camelCaseToSnakeCase } from '../utils';
 import { Construct } from 'constructs';
 import * as awsLogs from 'aws-cdk-lib/aws-logs';
 import { RetentionDays } from 'aws-cdk-lib/aws-logs';
-import { LambdaObject } from '../lambda/interfaces';
 
 function createStateMachineDefinitionSubstitutions(props: BuildSfnProps): {
   [key: string]: string;
@@ -121,6 +120,17 @@ function wireUpStateMachinePermissions(scope: Construct, props: WirePermissionsP
   for (const lambdaObject of lambdaFunctions) {
     lambdaObject.lambdaFunction.grantInvoke(props.stateMachineObj);
   }
+  /* Will need cdk nag suppressions for this */
+  NagSuppressions.addResourceSuppressions(
+    props.stateMachineObj,
+    [
+      {
+        id: 'AwsSolutions-IAM5',
+        reason: 'Granted for all versions of each lambda',
+      },
+    ],
+    true
+  );
 
   /* Grant invoke on the fargate upload single file task */
   if (sfnRequirements.needsEcsPermissions) {
