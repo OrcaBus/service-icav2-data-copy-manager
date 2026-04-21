@@ -338,9 +338,16 @@ function wireUpStateMachinePermissions(scope: Construct, props: WirePermissionsP
   /* Give the durable lambda throttle copy jobs to run handleCopyJobs */
   /* Runs asynchronously */
   if (props.stateMachineName === 'handleCopyJobs') {
-    const handleCopyJobsLambda = <LambdaObject>(
-      props.lambdaFunctions.find((lambdaObject) => lambdaObject.lambdaName === 'throttleCopyJobs')
+    const handleCopyJobsLambda = props.lambdaFunctions.find(
+      (lambdaObject) => lambdaObject.lambdaName === 'throttleCopyJobs'
     );
+
+    if (!handleCopyJobsLambda) {
+      throw new Error(
+        'Unable to wire Step Function permissions: lambda "throttleCopyJobs" was not found for state machine "handleCopyJobs".'
+      );
+    }
+
     // List and describe executions for the handle copy jobs step function
     handleCopyJobsLambda.lambdaFunction.addToRolePolicy(
       new iam.PolicyStatement({
