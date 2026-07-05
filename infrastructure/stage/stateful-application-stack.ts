@@ -18,11 +18,12 @@ import { buildTable } from './dynamodb';
 import { buildSchemas } from './event-schemas';
 import { Topic } from 'aws-cdk-lib/aws-sns';
 import { Duration } from 'aws-cdk-lib';
+import { GitStack } from '@orcabus/platform-cdk-constructs/deployment-stack-pipeline';
 
 export type StatefulApplicationStackProps = StatefulApplicationStackConfig & cdk.StackProps;
 
 // Stateful Application Stack
-export class StatefulApplicationStack extends cdk.Stack {
+export class StatefulApplicationStack extends GitStack {
   constructor(scope: Construct, id: string, props: StatefulApplicationStackProps) {
     super(scope, id, props);
 

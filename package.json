@@ -20,30 +20,30 @@
     "organization": true
   },
   "license": "MIT",
-  "packageManager": "pnpm@10.32.1+sha512.a706938f0e89ac1456b6563eab4edf1d1faf3368d1191fc5c59790e96dc918e4456ab2e67d613de1043d2e8c81f87303e6b40d4ffeca9df15ef1ad567348f2be",
+  "packageManager": "pnpm@11.10.0+sha512.0b7f8b98060031904c017e3a41eb187a16d40eeb829b95c4f8cb03681761fc4ab53dd219115b9b447f4dce1a05a214764461e7d3703392a9f32f9511ce8c86c8",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/jest": "^30.0.0",
-    "@types/node": "^25.6.0",
-    "aws-cdk": "^2.1118.4",
-    "cdk-nag": "^2.37.56",
-    "eslint": "^10.2.1",
-    "globals": "^17.5.0",
-    "jest": "^30.3.0",
-    "prettier": "^3.8.3",
+    "@types/node": "^25.9.4",
+    "aws-cdk": "^2.1129.0",
+    "cdk-nag": "^2.38.2",
+    "eslint": "^10.6.0",
+    "globals": "^17.7.0",
+    "jest": "^30.4.2",
+    "prettier": "^3.9.4",
     "test-js": "^0.0.4",
-    "ts-jest": "^29.4.9",
+    "ts-jest": "^29.4.11",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.59.0"
+    "typescript-eslint": "^8.62.1"
   },
   "dependencies": {
-    "@aws-cdk/aws-lambda-python-alpha": "2.240.0-alpha.0",
-    "@aws-cdk/aws-pipes-alpha": "2.240.0-alpha.0",
-    "@aws-cdk/aws-pipes-sources-alpha": "2.240.0-alpha.0",
-    "@orcabus/platform-cdk-constructs": "1.2.5",
-    "aws-cdk-lib": "^2.250.0",
+    "@aws-cdk/aws-lambda-python-alpha": "2.258.1-alpha.0",
+    "@aws-cdk/aws-pipes-alpha": "2.258.1-alpha.0",
+    "@aws-cdk/aws-pipes-sources-alpha": "2.258.1-alpha.0",
+    "@orcabus/platform-cdk-constructs": "1.7.0",
+    "aws-cdk-lib": "^2.261.0",
     "constructs": "^10.6.0",
-    "sqs-dlq-monitoring": "^1.2.21"
+    "sqs-dlq-monitoring": "^1.2.25"
   }
 }
