@@ -4,20 +4,23 @@
 Given a source uri list and a destination uri, deconstruct into the following.
 
 {
-  "sourceList": [ {"prj.1234", "fil.123456"}, {"fil.1234567", "fol.123456" ],
-  "destinationId": "folder.123456",
-  "recursiveCopyJobsList": [
-    {
-      "destinationId": "fol.123567",
-      "sourceIdList": ["fil.123456", "fil.123457", "fol.56789"]
-    }
+  "sourceDataList": [
+    {"projectId": "prj.1234", "dataId": "fil.123456"},
+    {"projectId": "prj.1234", "dataId": "fol.123456"}
+  ],
+  "destinationData": {
+    "projectId": "prj.1234",
+    "dataId": "fol.123456"
+  },
+  "externalSourceDataUriList": [
+    "s3://bucket/path/to/file"
   ]
 }
 
 The source uri may be a file or a directory, the destination uri must be a directory.
 
-If any item in the sourceIdList is a folder, we list the folder non-recursively and add the files in that folder to an
-item in the recursiveCopyJobsList.
+Each source uri is coerced to a project data object and added to the sourceDataList. Any source uri that cannot be
+resolved to a project data object (e.g. an external / non-ICAv2 uri) is collected into the externalSourceDataUriList.
 
 Due to AWS S3 Object tagging bugs, it's important each folder is part of its own job so we can handle single-part files correctly.
 
