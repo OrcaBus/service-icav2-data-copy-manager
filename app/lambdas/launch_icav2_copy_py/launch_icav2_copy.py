@@ -28,7 +28,7 @@ The event input is
 
 # Standard imports
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Optional
 import logging
 import re
 
@@ -60,7 +60,13 @@ DEFAULT_WAIT_TIME_SECONDS = 10
 DEFAULT_WAIT_TIME_SECONDS_EXT = 10
 
 
-def submit_copy_job(dest_project_data_obj: ProjectData, source_project_data_objs: List[ProjectData]) -> str:
+def submit_copy_job(dest_project_data_obj: ProjectData, source_project_data_objs: List[ProjectData]) -> Optional[str]:
+    # Ensure we have at least one source data object to copy before submitting a job.
+    # An empty source list would otherwise submit a no-op job that never completes.
+    if len(source_project_data_objs) == 0:
+        logger.info("No source data to copy, skipping copy job submission")
+        return None
+
     # Rerun copy batch process
     source_data_ids = list(
         map(
@@ -134,6 +140,14 @@ def handler(event, context):
     # Get events
     source_data_list: List[Dict[str, str]] = event.get("sourceDataList")
     destination_data: Dict[str, str] = event.get("destinationData")
+
+    # If there is no source data to copy (for example all sources were external),
+    # there is no copy job to run. Return a null jobId so the calling step function can skip the wait.
+    if not source_data_list or len(source_data_list) == 0:
+        logger.info("No source data to copy, skipping copy job submission")
+        return {
+            "jobId": None,
+        }
 
     # Get destination uri as project data object
     logger.info("Running job to copy files")

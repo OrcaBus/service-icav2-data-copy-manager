@@ -163,7 +163,22 @@
               "Assign": {
                 "jobId": "{% $states.result.Payload.jobId %}"
               },
-              "Next": "Wait Job Completion (sfn)"
+              "Next": "Has Job to Wait On"
+            },
+            "Has Job to Wait On": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Next": "Wait Job Completion (sfn)",
+                  "Condition": "{% $jobId ? true : false %}",
+                  "Comment": "A copy job was submitted, wait for it to complete"
+                }
+              ],
+              "Default": "No Copy Job"
+            },
+            "No Copy Job": {
+              "Type": "Pass",
+              "End": true
             },
             "Wait Job Completion (sfn)": {
               "Type": "Task",
@@ -179,7 +194,7 @@
                 {
                   "ErrorEquals": ["States.TaskFailed"],
                   "Assign": {
-                    "retryCounter": "{% ($retryCounter ? $retryCounter : 0) + 1 %}"
+                    "retryCounter": "{% $retryCounter ? $retryCounter : 0 %}"
                   },
                   "Next": "Failed with retryCounter > 3"
                 }
@@ -366,9 +381,49 @@
                 "ProcessorConfig": {
                   "Mode": "INLINE"
                 },
-                "StartAt": "Validate File (local)",
+                "StartAt": "File or Folder",
                 "States": {
+                  "File or Folder": {
+                    "Type": "Choice",
+                    "Choices": [
+                      {
+                        "Next": "Validate Folder (local)",
+                        "Condition": "{% $substring($states.input.dataId, 0, 3) = 'fol' %}",
+                        "Comment": "Source data is a folder"
+                      }
+                    ],
+                    "Default": "Validate File (local)"
+                  },
                   "Validate File (local)": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:states:::lambda:invoke",
+                    "Output": "{% $states.result.Payload %}",
+                    "Arguments": {
+                      "FunctionName": "${__validate_file_transfer_lambda_function_arn__}",
+                      "Payload": {
+                        "destinationUri": "{% $destinationUri %}",
+                        "sourceDataProjectId": "{% $states.input.projectId %}",
+                        "sourceDataId": "{% $states.input.dataId %}"
+                      }
+                    },
+                    "Retry": [
+                      {
+                        "ErrorEquals": [
+                          "Lambda.ServiceException",
+                          "Lambda.AWSLambdaException",
+                          "Lambda.SdkClientException",
+                          "Lambda.TooManyRequestsException",
+                          "States.TaskFailed"
+                        ],
+                        "IntervalSeconds": 1,
+                        "MaxAttempts": 3,
+                        "BackoffRate": 2,
+                        "JitterStrategy": "FULL"
+                      }
+                    ],
+                    "End": true
+                  },
+                  "Validate Folder (local)": {
                     "Type": "Task",
                     "Resource": "arn:aws:states:::lambda:invoke",
                     "Output": "{% $states.result.Payload %}",
