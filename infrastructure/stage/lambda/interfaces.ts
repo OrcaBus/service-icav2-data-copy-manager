@@ -9,16 +9,13 @@ export type LambdaName =
   | 'checkJobStatus'
   // Handle Copy Jobs lambdas
   | 'convertSourceUriFolderToUriList'
-  | 'findSinglePartFiles'
   | 'generateCopyJobList'
   | 'getExternalSourceFileMetadata'
   | 'getRenamingMapParams'
-  | 'getSourceFileSize'
   | 'launchIcav2Copy'
   | 'renameFile'
   | 'unlockCallbackId'
   | 'uploadFromFilemanager'
-  | 'uploadSinglePartFile'
   | 'validateFileTransfer'
   // Non SFN Lambdas
   | 'throttleCopyJobs';
@@ -30,16 +27,13 @@ export const lambdaNameList: LambdaName[] = [
   'checkJobStatus',
   // Handle Copy Jobs lambdas
   'convertSourceUriFolderToUriList',
-  'findSinglePartFiles',
   'generateCopyJobList',
   'getExternalSourceFileMetadata',
   'getRenamingMapParams',
-  'getSourceFileSize',
   'launchIcav2Copy',
   'renameFile',
   'unlockCallbackId',
   'uploadFromFilemanager',
-  'uploadSinglePartFile',
   'validateFileTransfer',
   // Non SFN Lambdas
   'throttleCopyJobs',
@@ -67,9 +61,6 @@ export const lambdaToRequirementsMap: LambdaToRequirementsMapType = {
   convertSourceUriFolderToUriList: {
     needsIcav2Tools: true,
   },
-  findSinglePartFiles: {
-    needsIcav2Tools: true,
-  },
   generateCopyJobList: {
     needsIcav2Tools: true,
   },
@@ -78,9 +69,6 @@ export const lambdaToRequirementsMap: LambdaToRequirementsMapType = {
     needsOrcabusApiTools: true,
   },
   getRenamingMapParams: {
-    needsIcav2Tools: true,
-  },
-  getSourceFileSize: {
     needsIcav2Tools: true,
   },
   launchIcav2Copy: {
@@ -95,9 +83,6 @@ export const lambdaToRequirementsMap: LambdaToRequirementsMapType = {
   uploadFromFilemanager: {
     needsIcav2Tools: true,
     needsOrcabusApiTools: true,
-  },
-  uploadSinglePartFile: {
-    needsIcav2Tools: true,
   },
   validateFileTransfer: {
     needsIcav2Tools: true,
