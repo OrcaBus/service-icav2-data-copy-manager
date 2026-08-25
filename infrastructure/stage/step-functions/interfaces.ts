@@ -37,7 +37,6 @@ export interface SfnObject extends SfnProps {
 
 export const stepFunctionToLambdaMap: { [key in SfnName]: Array<LambdaName> } = {
   handleCopyJobs: [
-    'convertSourceUriFolderToUriList',
     'generateCopyJobList',
     'getExternalSourceFileMetadata',
     'getRenamingMapParams',

@@ -8,7 +8,6 @@ export type LambdaName =
   // Send internal task token lambdas
   | 'checkJobStatus'
   // Handle Copy Jobs lambdas
-  | 'convertSourceUriFolderToUriList'
   | 'generateCopyJobList'
   | 'getExternalSourceFileMetadata'
   | 'getRenamingMapParams'
@@ -26,7 +25,6 @@ export const lambdaNameList: LambdaName[] = [
   // Send internal task token lambdas
   'checkJobStatus',
   // Handle Copy Jobs lambdas
-  'convertSourceUriFolderToUriList',
   'generateCopyJobList',
   'getExternalSourceFileMetadata',
   'getRenamingMapParams',
@@ -58,9 +56,6 @@ export const lambdaToRequirementsMap: LambdaToRequirementsMapType = {
     needsIcav2Tools: true,
   },
   // Handle Copy Jobs lambdas
-  convertSourceUriFolderToUriList: {
-    needsIcav2Tools: true,
-  },
   generateCopyJobList: {
     needsIcav2Tools: true,
   },
