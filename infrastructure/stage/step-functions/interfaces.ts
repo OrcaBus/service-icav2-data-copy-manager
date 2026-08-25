@@ -45,6 +45,7 @@ export const stepFunctionToLambdaMap: { [key in SfnName]: Array<LambdaName> } = 
     'unlockCallbackId',
     'uploadFromFilemanager',
     'validateFileTransfer',
+    'validateFolderTransfer',
   ],
   saveJobAndInternalTaskToken: [],
   sendCopyJobsToQueue: [],

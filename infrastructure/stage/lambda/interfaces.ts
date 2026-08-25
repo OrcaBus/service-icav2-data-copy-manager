@@ -16,6 +16,7 @@ export type LambdaName =
   | 'unlockCallbackId'
   | 'uploadFromFilemanager'
   | 'validateFileTransfer'
+  | 'validateFolderTransfer'
   // Non SFN Lambdas
   | 'throttleCopyJobs';
 
@@ -33,6 +34,7 @@ export const lambdaNameList: LambdaName[] = [
   'unlockCallbackId',
   'uploadFromFilemanager',
   'validateFileTransfer',
+  'validateFolderTransfer',
   // Non SFN Lambdas
   'throttleCopyJobs',
 ];
@@ -82,6 +84,9 @@ export const lambdaToRequirementsMap: LambdaToRequirementsMapType = {
   validateFileTransfer: {
     needsIcav2Tools: true,
     needsOrcabusApiTools: true,
+  },
+  validateFolderTransfer: {
+    needsIcav2Tools: true,
   },
   // Non SFN Lambdas
   throttleCopyJobs: {

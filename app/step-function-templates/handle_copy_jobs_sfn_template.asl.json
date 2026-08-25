@@ -106,9 +106,9 @@
           "JitterStrategy": "FULL"
         }
       ],
-      "Next": "Run top level and recursive in parallel"
+      "Next": "Run ICA Copy and External Data upload in parallel"
     },
-    "Run top level and recursive in parallel": {
+    "Run ICA Copy and External Data upload in parallel": {
       "Type": "Parallel",
       "Next": "Validate Files",
       "Branches": [
@@ -388,7 +388,7 @@
                     "Choices": [
                       {
                         "Next": "Validate Folder (local)",
-                        "Condition": "{% $substring($states.input.dataId, 0, 3) = 'fol' %}",
+                        "Condition": "{% $substring($states.input.dataId, 0, 4) = 'fol.' %}",
                         "Comment": "Source data is a folder"
                       }
                     ],
@@ -412,8 +412,7 @@
                           "Lambda.ServiceException",
                           "Lambda.AWSLambdaException",
                           "Lambda.SdkClientException",
-                          "Lambda.TooManyRequestsException",
-                          "States.TaskFailed"
+                          "Lambda.TooManyRequestsException"
                         ],
                         "IntervalSeconds": 1,
                         "MaxAttempts": 3,
@@ -428,7 +427,7 @@
                     "Resource": "arn:aws:states:::lambda:invoke",
                     "Output": "{% $states.result.Payload %}",
                     "Arguments": {
-                      "FunctionName": "${__validate_file_transfer_lambda_function_arn__}",
+                      "FunctionName": "${__validate_folder_transfer_lambda_function_arn__}",
                       "Payload": {
                         "destinationUri": "{% $destinationUri %}",
                         "sourceDataProjectId": "{% $states.input.projectId %}",
@@ -441,8 +440,7 @@
                           "Lambda.ServiceException",
                           "Lambda.AWSLambdaException",
                           "Lambda.SdkClientException",
-                          "Lambda.TooManyRequestsException",
-                          "States.TaskFailed"
+                          "Lambda.TooManyRequestsException"
                         ],
                         "IntervalSeconds": 1,
                         "MaxAttempts": 3,

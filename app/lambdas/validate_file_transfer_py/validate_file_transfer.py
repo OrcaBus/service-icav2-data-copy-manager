@@ -7,6 +7,10 @@ Given either one of the following sets of inputs:
 OR
 - destinationUri
 - sourceDataUri
+OR
+- destinationUri
+- sourceDataId
+- sourceDataProjectId
 
 Perform the following validations:
 
@@ -17,24 +21,19 @@ If given destinationUri and sourceDataUri,
 The destinationUri provided is a folder, extend with the filename from the sourceDataUri and validate that the file exists
 at the extended destinationUri and that the filesize matches the sourceDataUri filesize
 
-If given destinationUri and a folder sourceDataId / sourceDataProjectId,
-The destinationUri provided is a folder, extend with the source folder name and recursively validate that the
-destination folder contains the same number of files and the same total file size as the source folder.
+If given destinationUri and sourceDataId/sourceDataProjectId (file),
+Resolve the source file, construct the expected destination path, and validate matching file sizes.
 """
 # Standard imports
 from pathlib import Path
-from typing import List
 from urllib.parse import urlparse
 
 # Wrapica imports
-from wrapica.libica_models import ProjectData
 from wrapica.project_data import (
     coerce_data_id_or_uri_to_project_data_obj,
     get_project_data_obj_by_id,
     convert_project_data_obj_to_uri,
-    find_project_data_recursively,
 )
-from wrapica.utils.globals import FILE_DATA_TYPE
 
 # Orcabus layer imports
 from orcabus_api_tools.filemanager import get_file_object_from_s3_uri
@@ -60,82 +59,12 @@ def get_filesize_from_uri(uri: str) -> int:
     return file_size
 
 
-def list_files_recursively(project_data_obj: ProjectData) -> List[ProjectData]:
-    """
-    Given a folder project data object, recursively list all files (not folders) beneath it.
-    """
-    return find_project_data_recursively(
-        project_id=project_data_obj.project_id,
-        parent_folder_id=project_data_obj.data.id,
-        data_type=FILE_DATA_TYPE,
-    )
-
-
-def get_file_count_and_total_size(file_list: List[ProjectData]) -> (int, int):
-    """
-    Given a list of file project data objects, return the number of files and the total file size in bytes.
-    """
-    total_size = sum(
-        map(
-            lambda file_iter_: (file_iter_.data.details.file_size_in_bytes or 0),
-            file_list
-        )
-    )
-    return len(file_list), total_size
-
-
-def validate_folder(destination_uri: str, source_data_project_id: str, source_data_id: str):
-    """
-    Recursively validate that the destination folder contains the same number of files and the same
-    total file size as the source folder.
-
-    The destination folder is the destination_uri extended with the source folder name.
-    """
-    source_folder_obj = get_project_data_obj_by_id(
-        project_id=source_data_project_id,
-        data_id=source_data_id,
-    )
-
-    # Destination folder is destinationUri + source folder name (destinationUri ends with '/')
-    destination_folder_uri = destination_uri + source_folder_obj.data.details.name + "/"
-
-    # This will raise if the destination folder does not exist
-    destination_folder_obj = coerce_data_id_or_uri_to_project_data_obj(destination_folder_uri)
-
-    source_files = list_files_recursively(source_folder_obj)
-    destination_files = list_files_recursively(destination_folder_obj)
-
-    source_file_count, source_total_size = get_file_count_and_total_size(source_files)
-    destination_file_count, destination_total_size = get_file_count_and_total_size(destination_files)
-
-    if not source_file_count == destination_file_count:
-        raise ValueError(
-            f"File count of destination folder {destination_folder_uri} ({destination_file_count}) does not match the "
-            f"file count of source folder ({source_file_count})"
-        )
-
-    if not source_total_size == destination_total_size:
-        raise ValueError(
-            f"Total file size of destination folder {destination_folder_uri} ({destination_total_size}) does not match "
-            f"the total file size of source folder ({source_total_size})"
-        )
-
-
 def handler(event, context):
     """
     Get inputs,
     use the inputs to determine which validation to perform,
-    perform the validation and return the result
-    Raise an error if the validation fails
-
-    Parameters
-    ----------
-    event
-    context
-
-    Returns
-    -------
-
+    perform the validation and return the result.
+    Raise an error if the validation fails.
     """
 
     # Set icav2 env vars
@@ -149,18 +78,6 @@ def handler(event, context):
     source_data_id = event.get('sourceDataId')
     source_data_project_id = event.get('sourceDataProjectId')
     source_data_uri = event.get('sourceDataUri')
-
-    # A folder source data id is prefixed with 'fol.', a file source data id is prefixed with 'fil.'
-    is_folder = source_data_id is not None and source_data_id.startswith('fol')
-
-    # Folder validation
-    if destination_uri is not None and source_data_id is not None and source_data_project_id is not None and is_folder:
-        validate_folder(
-            destination_uri=destination_uri,
-            source_data_project_id=source_data_project_id,
-            source_data_id=source_data_id,
-        )
-        return
 
     # Check first one
     if file_size_in_bytes is not None and output_uri is not None:
