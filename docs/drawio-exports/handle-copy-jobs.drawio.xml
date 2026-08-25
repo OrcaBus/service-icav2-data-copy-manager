@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="Kiro" version="27.0.4">
+  <diagram name="handle-copy-jobs" id="handleCopyJobs">
+    <mxGraphModel dx="1200" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="1300" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="evt" value="ICAv2DataCopySync event&#10;(payload + taskToken)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="390" y="20" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="setvars" value="Set variables from inputs&#10;(sourceUriList, destinationUri,&#10;taskToken, renamingMapList, callbackId)" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="370" y="100" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="turnon" value="Turn on external heartbeat rule&#10;(EventBridge enableRule)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="380" y="190" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="genlist" value="Generate copy job list (Lambda)&#10;→ sourceDataList (files &amp; folders),&#10;destinationData, externalSourceDataUriList" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="360" y="270" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="unlock" value="Unlock Callback id (Lambda)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="385" y="360" width="230" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="par" value="Run copy job and external uploads in parallel" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="430" width="920" height="360" as="geometry" />
+        </mxCell>
+
+        <!-- Branch A: single ICAv2 copy job -->
+        <mxCell id="runcopy" value="Run Copy Job (launchIcav2Copy Lambda)&#10;Submit all sourceDataList items&#10;as one ICAv2 copy job → jobId" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="70" y="470" width="300" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="hasjob" value="Has job to wait on?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="140" y="570" width="160" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="waitjob" value="Wait Job Completion&#10;(saveJobAndInternalTaskToken sfn,&#10;waitForTaskToken)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="70" y="670" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="nocopy" value="No Copy Job (Pass)" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="680" width="130" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="retry" value="On failure: retry ≤ 3&#10;else Send external task failure" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="70" y="740" width="200" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Branch B: external sources -->
+        <mxCell id="extmap" value="Map: for each external source URI&#10;Get external source metadata (Lambda)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="620" y="470" width="300" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="extlambda" value="&lt; 8 MB:&#10;Upload from Filemanager (Lambda)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="620" y="560" width="300" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="extecs" value="≥ 8 MB:&#10;Upload from Filemanager (ECS Fargate)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="620" y="640" width="300" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Post-parallel -->
+        <mxCell id="validate" value="Validate Files (parallel)&#10;validateFileTransfer over source data (file or folder)&#10;&amp; external source lists" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="340" y="820" width="320" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="hasrename" value="Has renaming map?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="420" y="920" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="renamemap" value="Map: for object in renaming map&#10;Get renaming params (Lambda) →&#10;Rename (Lambda &lt; 8 MB / ECS ≥ 8 MB) →&#10;Wait 30s → Validate (post-rename)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="680" y="920" width="290" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="hastoken" value="Task token not null?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="420" y="1040" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="success" value="Send External Task Token Success&#10;(unblocks the calling state machine)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="300" y="1160" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="pass" value="Pass (no task token)" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="640" y="1160" width="180" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Edges -->
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="evt" target="setvars"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="setvars" target="turnon"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="turnon" target="genlist"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="genlist" target="unlock"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="unlock" target="par"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="ea1" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="runcopy" target="hasjob"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ea2" value="yes" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="hasjob" target="waitjob"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ea3" value="no" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="hasjob" target="nocopy"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ea4" style="edgeStyle=orthogonalEdgeStyle;html=1;dashed=1;" edge="1" parent="1" source="waitjob" target="retry"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="ec1" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="extmap" target="extlambda"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ec2" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="extmap" target="extecs"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="ef1" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="par" target="validate"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ef2" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="validate" target="hasrename"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ef3" value="yes" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="hasrename" target="renamemap"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ef4" value="no" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="hasrename" target="hastoken"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ef5" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="renamemap" target="hastoken"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ef6" value="yes" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="hastoken" target="success"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ef7" value="no" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="hastoken" target="pass"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

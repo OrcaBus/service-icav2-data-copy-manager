@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1250" viewBox="0 0 1000 1250" style="background-color:#ffffff;" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#4d4d4d"/>
+    </marker>
+  </defs>
+
+  <style>
+    .lbl { font-size:12px; fill:#1a1a1a; text-anchor:middle; }
+    .edge { stroke:#4d4d4d; stroke-width:1.5; fill:none; marker-end:url(#arrow); }
+    .edgelbl { font-size:11px; fill:#4d4d4d; text-anchor:middle; }
+    .lambda { fill:#d5e8d4; stroke:#82b366; }
+    .ecs { fill:#f8cecc; stroke:#b85450; }
+    .sfn { fill:#fff2cc; stroke:#d6b656; }
+    .choice { fill:#dae8fc; stroke:#6c8ebf; }
+    .evt { fill:#dae8fc; stroke:#6c8ebf; }
+    .plain { fill:#ffffff; stroke:#999999; }
+    .grp { fill:#f7f7f7; stroke:#8c8c8c; stroke-dasharray:6 4; }
+    .box { stroke-width:1.5; }
+    .title { font-size:13px; font-weight:bold; fill:#333; }
+  </style>
+
+  <!-- ===== main spine ===== -->
+  <rect class="box evt" x="390" y="20" width="220" height="46" rx="6"/>
+  <text class="lbl" x="500" y="40">ICAv2DataCopySync event</text>
+  <text class="lbl" x="500" y="56">(payload + taskToken)</text>
+
+  <rect class="box plain" x="360" y="96" width="280" height="52" rx="6"/>
+  <text class="lbl" x="500" y="116">Set variables from inputs</text>
+  <text class="lbl" x="500" y="132">sourceUriList, destinationUri, taskToken,</text>
+  <text class="lbl" x="500" y="146">renamingMapList, callbackId</text>
+
+  <rect class="box ecs" x="380" y="178" width="240" height="46" rx="6" style="fill:#ffe6cc;stroke:#d79b00"/>
+  <text class="lbl" x="500" y="198">Turn on external heartbeat rule</text>
+  <text class="lbl" x="500" y="214">(EventBridge enableRule)</text>
+
+  <rect class="box lambda" x="360" y="254" width="280" height="58" rx="6"/>
+  <text class="lbl" x="500" y="274">Generate copy job list (Lambda)</text>
+  <text class="lbl" x="500" y="290">→ sourceDataList (files &amp; folders),</text>
+  <text class="lbl" x="500" y="304">destinationData, externalSourceDataUriList</text>
+
+  <rect class="box lambda" x="385" y="342" width="230" height="40" rx="6"/>
+  <text class="lbl" x="500" y="366">Unlock Callback id (Lambda)</text>
+
+  <!-- parallel group -->
+  <rect class="grp" x="40" y="410" width="920" height="380" rx="4"/>
+  <text class="title" x="60" y="432">Run copy job and external uploads in parallel</text>
+
+  <!-- Branch A: one ICAv2 copy job -->
+  <rect class="box lambda" x="70" y="452" width="300" height="66" rx="6"/>
+  <text class="lbl" x="220" y="474">Run Copy Job (launchIcav2Copy Lambda)</text>
+  <text class="lbl" x="220" y="490">Submit all sourceDataList items as</text>
+  <text class="lbl" x="220" y="506">one ICAv2 copy job → jobId</text>
+
+  <polygon class="choice" points="220,540 300,580 220,620 140,580" />
+  <text class="lbl" x="220" y="584">Has job to wait on?</text>
+
+  <rect class="box sfn" x="70" y="654" width="210" height="60" rx="6"/>
+  <text class="lbl" x="175" y="676">Wait Job Completion</text>
+  <text class="lbl" x="175" y="692">saveJobAndInternalTaskToken</text>
+  <text class="lbl" x="175" y="706">(waitForTaskToken)</text>
+
+  <rect class="box plain" x="310" y="656" width="130" height="40" rx="6"/>
+  <text class="lbl" x="375" y="680">No Copy Job (Pass)</text>
+
+  <rect class="box ecs" x="70" y="738" width="210" height="42" rx="6" style="stroke-dasharray:5 3"/>
+  <text class="lbl" x="175" y="758">On failure: retry ≤ 3 else</text>
+  <text class="lbl" x="175" y="773">send external task failure</text>
+
+  <!-- Branch B: external sources -->
+  <rect class="box lambda" x="620" y="452" width="300" height="56" rx="6"/>
+  <text class="lbl" x="770" y="474">Map: each external source URI</text>
+  <text class="lbl" x="770" y="490">Get external metadata (Lambda)</text>
+
+  <rect class="box lambda" x="620" y="536" width="300" height="46" rx="6"/>
+  <text class="lbl" x="770" y="556">&lt; 8 MB: Upload from</text>
+  <text class="lbl" x="770" y="572">Filemanager (Lambda)</text>
+
+  <rect class="box ecs" x="620" y="612" width="300" height="46" rx="6"/>
+  <text class="lbl" x="770" y="632">≥ 8 MB: Upload from</text>
+  <text class="lbl" x="770" y="648">Filemanager (ECS)</text>
+
+  <!-- post-parallel -->
+  <rect class="box lambda" x="340" y="816" width="320" height="60" rx="6"/>
+  <text class="lbl" x="500" y="838">Validate Files (parallel)</text>
+  <text class="lbl" x="500" y="854">validateFileTransfer over source data</text>
+  <text class="lbl" x="500" y="868">(file or folder) &amp; external source lists</text>
+
+  <polygon class="choice" points="500,904 590,950 500,996 410,950" />
+  <text class="lbl" x="500" y="954">Has renaming map?</text>
+
+  <rect class="box lambda" x="670" y="910" width="300" height="80" rx="6"/>
+  <text class="lbl" x="820" y="932">Map: for object in renaming map</text>
+  <text class="lbl" x="820" y="948">Get renaming params (Lambda) →</text>
+  <text class="lbl" x="820" y="964">Rename (Lambda &lt; 8 MB / ECS ≥ 8 MB) →</text>
+  <text class="lbl" x="820" y="980">Wait 30s → Validate (post-rename)</text>
+
+  <polygon class="choice" points="500,1030 590,1076 500,1122 410,1076" />
+  <text class="lbl" x="500" y="1080">Task token not null?</text>
+
+  <rect class="box lambda" x="300" y="1160" width="290" height="50" rx="6"/>
+  <text class="lbl" x="445" y="1182">Send External Task Token Success</text>
+  <text class="lbl" x="445" y="1198">(unblocks the calling state machine)</text>
+
+  <rect class="box plain" x="640" y="1160" width="180" height="50" rx="6"/>
+  <text class="lbl" x="730" y="1188">Pass (no task token)</text>
+
+  <!-- ===== edges ===== -->
+  <path class="edge" d="M500,66 L500,94"/>
+  <path class="edge" d="M500,148 L500,176"/>
+  <path class="edge" d="M500,224 L500,252"/>
+  <path class="edge" d="M500,312 L500,340"/>
+  <path class="edge" d="M500,382 L500,408"/>
+
+  <!-- fan-out from Unlock into the two parallel branches -->
+  <path class="edge" d="M430,362 L220,362 L220,450"/>
+  <path class="edge" d="M615,362 L770,362 L770,450"/>
+
+  <!-- Branch A internal -->
+  <path class="edge" d="M220,518 L220,538"/>
+  <path class="edge" d="M180,608 L175,652"/>
+  <text class="edgelbl" x="160" y="636">yes</text>
+  <path class="edge" d="M280,590 L375,590 L375,654"/>
+  <text class="edgelbl" x="340" y="582">no</text>
+  <path class="edge" d="M175,714 L175,736" style="stroke-dasharray:5 3"/>
+
+  <!-- Branch B internal -->
+  <path class="edge" d="M770,508 L770,534"/>
+  <path class="edge" d="M770,582 L770,610"/>
+
+  <!-- out of parallel to validate -->
+  <path class="edge" d="M500,790 L500,814"/>
+  <path class="edge" d="M500,876 L500,902"/>
+  <path class="edge" d="M590,950 L820,950 L820,908"/>
+  <text class="edgelbl" x="700" y="942">yes</text>
+  <path class="edge" d="M820,990 L820,1076 L592,1076"/>
+  <path class="edge" d="M500,996 L500,1028"/>
+  <text class="edgelbl" x="516" y="1016">no</text>
+  <path class="edge" d="M470,1116 L445,1158"/>
+  <text class="edgelbl" x="430" y="1144">yes</text>
+  <path class="edge" d="M560,1100 L730,1100 L730,1158"/>
+  <text class="edgelbl" x="650" y="1092">no</text>
+</svg>
