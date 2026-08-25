@@ -1,2 +1,180 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0" version="27.0.4"><diagram name="Page-1" id="PzOFNdXQtwWriAUS2ZOt">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</diagram></mxfile>
+<mxfile host="app.diagrams.net" agent="Kiro" version="27.0.4">
+  <diagram name="icav2-data-copy-manager" id="icav2DataCopyManager">
+    <mxGraphModel dx="1400" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ============ Row 1: bus intake ============ -->
+        <mxCell id="bus" value="OrcaBusMain event bus" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="360" y="40" width="620" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="evt" value="ICAv2DataCopySync event&#10;detail.payload (sourceUriList, destinationUri)&#10;detail.taskToken" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="390" y="75" width="280" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="rule" value="listenExternalCopyJobRule&#10;(detailType = ICAv2DataCopySync,&#10;detail.payload.destinationUri exists)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="710" y="75" width="240" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="caller" value="External caller&#10;(waits on its own task token)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="60" y="75" width="220" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ============ Center processing spine (x=710..950) ============ -->
+        <mxCell id="sendqueue" value="sendCopyJobsToQueue SFN (Express)&#10;• enable SQS heartbeat rule&#10;• write TASK_TOKEN_SQS row (DynamoDB)&#10;• enqueue { taskToken, payload }" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="700" y="230" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="throttleq" value="InternalIcav2CopyJobSqsQueue&#10;(throttling buffer)" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sqs;html=1;verticalLabelPosition=bottom;verticalAlign=top;fillColor=#E7157B;strokeColor=#ffffff;fontColor=#232F3E;aspect=fixed;" vertex="1" parent="1">
+          <mxGeometry x="800" y="370" width="60" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="throttlelambda" value="throttleCopyJobs Lambda&#10;(maxConcurrency = 15,&#10;durable wait-for-callback)&#10;starts handleCopyJobs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="710" y="480" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="handle" value="handleCopyJobs SFN (Standard)&#10;• enable external heartbeat rule&#10;• generate copy job list&#10;• unlock callbackId (frees throttle slot)&#10;• launch ICAv2 copy → jobId&#10;• wait on inner task token (copy job)&#10;• upload external sources, validate, rename&#10;• SendTaskSuccess/Failure to external taskToken" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="690" y="620" width="300" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- savejob: left of handle, same row, its own column (x=330..610) -->
+        <mxCell id="savejob" value="saveJobAndInternalTaskToken SFN (Express)&#10;• write JOB_ID row + inner task_token (DynamoDB)&#10;• enable internal heartbeat rule" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="330" y="650" width="290" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- DynamoDB: dedicated row between center spine and left, clear of other nodes -->
+        <mxCell id="table" value="icav2DataCopyManager table&#10;JOB_ID / TASK_TOKEN_SQS rows" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;html=1;verticalLabelPosition=bottom;verticalAlign=top;fillColor=#E7157B;strokeColor=#ffffff;fontColor=#232F3E;aspect=fixed;" vertex="1" parent="1">
+          <mxGeometry x="440" y="390" width="60" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ============ Right column: ICAv2 + notification return path (x=1160..) ============ -->
+        <mxCell id="icav2" value="ICAv2 platform&#10;(runs the async copy job)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="370" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="icaq" value="Icav2CopyJobSqsQueue&#10;(ICA copy-job notifications)" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sqs;html=1;verticalLabelPosition=bottom;verticalAlign=top;fillColor=#E7157B;strokeColor=#ffffff;fontColor=#232F3E;aspect=fixed;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="480" width="60" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="pipe" value="Icav2CopyJobEventPipe" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="590" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="sendinternal" value="sendInternalTaskToken SFN (Express)&#10;on SUCCEEDED → SendTaskSuccess(inner)&#10;on failure → SendTaskFailure(inner)&#10;delete JOB_ID row" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="680" width="240" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- ============ Heartbeat group: isolated full-width lane at the bottom ============ -->
+        <mxCell id="hbbox" value="Scheduled heartbeat rules (rate: 3 min, self-disabling)" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#fff2cc;strokeColor=#d6b656;dashed=1;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="900" width="1340" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="hbext" value="externalHeartBeatScheduleRule&#10;→ sendHeartbeatExternal&#10;(heartbeat external caller task token)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="90" y="945" width="400" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="hbint" value="internalHeartBeatScheduleRule&#10;→ sendHeartbeatInternal (checkJobStatus Lambda)&#10;poll ICAv2 job → heartbeat / success / failure (inner)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="540" y="945" width="400" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="hbsqs" value="sqsQueueScheduleRule&#10;→ sendHeartbeatOfQueueJobs&#10;(heartbeat queued task tokens)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="990" y="945" width="380" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- ============ Edges ============ -->
+        <!-- Intake: caller → event → rule -->
+        <mxCell id="e_caller_evt" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="caller" target="evt">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_evt_rule" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="evt" target="rule">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Center spine, all straight vertical drops -->
+        <mxCell id="e_rule_sendqueue" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rule" target="sendqueue">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sendqueue_q" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="sendqueue" target="throttleq">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_q_lambda" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="throttleq" target="throttlelambda">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_lambda_handle" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="throttlelambda" target="handle">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- sendqueue → DynamoDB: left out of sendqueue, down the x=600 channel, into table top -->
+        <mxCell id="e_sendqueue_table" value="write&#10;TASK_TOKEN_SQS" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;dashed=1;fontSize=10;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="sendqueue" target="table">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="600" y="275" />
+              <mxPoint x="600" y="340" />
+              <mxPoint x="470" y="340" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- savejob → DynamoDB: up the x=360 channel, into table left -->
+        <mxCell id="e_save_table" value="write JOB_ID" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;dashed=1;fontSize=10;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="savejob" target="table">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="300" y="695" />
+              <mxPoint x="300" y="420" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- handle → savejob (inner task token wait): drop below both boxes so the label clears the handle text -->
+        <mxCell id="e_handle_save" value="startExecution.waitForTaskToken" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontSize=10;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;verticalAlign=top;" edge="1" parent="1" source="handle" target="savejob">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="765" y="825" />
+              <mxPoint x="475" y="825" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- handle → ICAv2: right out of handle, up the x=1080 channel, into ICAv2 bottom -->
+        <mxCell id="e_handle_icav2" value="launch copy job" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="handle" target="icav2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1080" y="710" />
+              <mxPoint x="1080" y="470" />
+              <mxPoint x="1280" y="470" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ICAv2 return path down the right column -->
+        <mxCell id="e_icav2_icaq" value="job state-change&#10;notification" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="icav2" target="icaq">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_icaq_pipe" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="icaq" target="pipe">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_pipe_sendinternal" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="pipe" target="sendinternal">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- sendInternalTaskToken → handle (release inner token) -->
+        <mxCell id="e_sendinternal_handle" value="SendTaskSuccess (inner token)&#10;releases copy-job wait" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontSize=10;strokeColor=#82b366;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="sendinternal" target="handle">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- handle → caller: out the bottom, along y=850 band, up far-left x=20 to caller left -->
+        <mxCell id="e_handle_caller" value="SendTaskSuccess / SendTaskFailure&#10;(external task token) — request released" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontSize=10;strokeColor=#82b366;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="handle" target="caller">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="840" y="862" />
+              <mxPoint x="20" y="862" />
+              <mxPoint x="20" y="110" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- external heartbeat → caller (dashed): up the x=40 channel -->
+        <mxCell id="e_hbext_caller" value="heartbeat" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;dashed=1;strokeColor=#d6b656;fontSize=10;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.15;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="hbext" target="caller">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="40" y="1020" />
+              <mxPoint x="40" y="200" />
+              <mxPoint x="93" y="200" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
