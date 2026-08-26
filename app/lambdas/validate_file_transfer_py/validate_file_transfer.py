@@ -7,6 +7,10 @@ Given either one of the following sets of inputs:
 OR
 - destinationUri
 - sourceDataUri
+OR
+- destinationUri
+- sourceDataId
+- sourceDataProjectId
 
 Perform the following validations:
 
@@ -16,6 +20,9 @@ validate that the outputUri filesize matches the fileSizeInBytes value
 If given destinationUri and sourceDataUri,
 The destinationUri provided is a folder, extend with the filename from the sourceDataUri and validate that the file exists
 at the extended destinationUri and that the filesize matches the sourceDataUri filesize
+
+If given destinationUri and sourceDataId/sourceDataProjectId (file),
+Resolve the source file, construct the expected destination path, and validate matching file sizes.
 """
 # Standard imports
 from pathlib import Path
@@ -25,7 +32,7 @@ from urllib.parse import urlparse
 from wrapica.project_data import (
     coerce_data_id_or_uri_to_project_data_obj,
     get_project_data_obj_by_id,
-    convert_project_data_obj_to_uri
+    convert_project_data_obj_to_uri,
 )
 
 # Orcabus layer imports
@@ -56,17 +63,8 @@ def handler(event, context):
     """
     Get inputs,
     use the inputs to determine which validation to perform,
-    perform the validation and return the result
-    Raise an error if the validation fails
-
-    Parameters
-    ----------
-    event
-    context
-
-    Returns
-    -------
-
+    perform the validation and return the result.
+    Raise an error if the validation fails.
     """
 
     # Set icav2 env vars
@@ -132,5 +130,8 @@ def handler(event, context):
 
     else:
         raise ValueError(
-            "Invalid inputs. Must provide either fileSizeInBytes and outputUri, or destinationUri and sourceDataUri."
+            "Invalid inputs. Must provide one of: "
+            "fileSizeInBytes and outputUri, "
+            "destinationUri and sourceDataUri, "
+            "or destinationUri and sourceDataId and sourceDataProjectId."
         )

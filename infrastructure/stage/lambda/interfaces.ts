@@ -8,18 +8,15 @@ export type LambdaName =
   // Send internal task token lambdas
   | 'checkJobStatus'
   // Handle Copy Jobs lambdas
-  | 'convertSourceUriFolderToUriList'
-  | 'findSinglePartFiles'
   | 'generateCopyJobList'
   | 'getExternalSourceFileMetadata'
   | 'getRenamingMapParams'
-  | 'getSourceFileSize'
   | 'launchIcav2Copy'
   | 'renameFile'
   | 'unlockCallbackId'
   | 'uploadFromFilemanager'
-  | 'uploadSinglePartFile'
   | 'validateFileTransfer'
+  | 'validateFolderTransfer'
   // Non SFN Lambdas
   | 'throttleCopyJobs';
 
@@ -29,18 +26,15 @@ export const lambdaNameList: LambdaName[] = [
   // Send internal task token lambdas
   'checkJobStatus',
   // Handle Copy Jobs lambdas
-  'convertSourceUriFolderToUriList',
-  'findSinglePartFiles',
   'generateCopyJobList',
   'getExternalSourceFileMetadata',
   'getRenamingMapParams',
-  'getSourceFileSize',
   'launchIcav2Copy',
   'renameFile',
   'unlockCallbackId',
   'uploadFromFilemanager',
-  'uploadSinglePartFile',
   'validateFileTransfer',
+  'validateFolderTransfer',
   // Non SFN Lambdas
   'throttleCopyJobs',
 ];
@@ -64,12 +58,6 @@ export const lambdaToRequirementsMap: LambdaToRequirementsMapType = {
     needsIcav2Tools: true,
   },
   // Handle Copy Jobs lambdas
-  convertSourceUriFolderToUriList: {
-    needsIcav2Tools: true,
-  },
-  findSinglePartFiles: {
-    needsIcav2Tools: true,
-  },
   generateCopyJobList: {
     needsIcav2Tools: true,
   },
@@ -78,9 +66,6 @@ export const lambdaToRequirementsMap: LambdaToRequirementsMapType = {
     needsOrcabusApiTools: true,
   },
   getRenamingMapParams: {
-    needsIcav2Tools: true,
-  },
-  getSourceFileSize: {
     needsIcav2Tools: true,
   },
   launchIcav2Copy: {
@@ -96,12 +81,12 @@ export const lambdaToRequirementsMap: LambdaToRequirementsMapType = {
     needsIcav2Tools: true,
     needsOrcabusApiTools: true,
   },
-  uploadSinglePartFile: {
-    needsIcav2Tools: true,
-  },
   validateFileTransfer: {
     needsIcav2Tools: true,
     needsOrcabusApiTools: true,
+  },
+  validateFolderTransfer: {
+    needsIcav2Tools: true,
   },
   // Non SFN Lambdas
   throttleCopyJobs: {

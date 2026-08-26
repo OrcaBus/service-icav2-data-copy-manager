@@ -6,13 +6,9 @@ import { IParameter } from 'aws-cdk-lib/aws-ssm';
 import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
 import { EcsFargateTaskConstruct } from '@orcabus/platform-cdk-constructs/ecs';
 
-export type EcsTaskName = 'renameFile' | 'uploadFromFilemanager' | 'uploadSinglePartFile';
+export type EcsTaskName = 'renameFile' | 'uploadFromFilemanager';
 
-export const ecsTaskNameList: EcsTaskName[] = [
-  'renameFile',
-  'uploadFromFilemanager',
-  'uploadSinglePartFile',
-];
+export const ecsTaskNameList: EcsTaskName[] = ['renameFile', 'uploadFromFilemanager'];
 
 export interface BuildAllFargateEcsTasksProps {
   icav2AccessTokenSecretObj: ISecret;

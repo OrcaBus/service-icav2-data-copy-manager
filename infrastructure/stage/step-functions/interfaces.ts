@@ -37,18 +37,15 @@ export interface SfnObject extends SfnProps {
 
 export const stepFunctionToLambdaMap: { [key in SfnName]: Array<LambdaName> } = {
   handleCopyJobs: [
-    'convertSourceUriFolderToUriList',
-    'findSinglePartFiles',
     'generateCopyJobList',
     'getExternalSourceFileMetadata',
     'getRenamingMapParams',
-    'getSourceFileSize',
     'launchIcav2Copy',
     'renameFile',
     'unlockCallbackId',
     'uploadFromFilemanager',
-    'uploadSinglePartFile',
     'validateFileTransfer',
+    'validateFolderTransfer',
   ],
   saveJobAndInternalTaskToken: [],
   sendCopyJobsToQueue: [],
