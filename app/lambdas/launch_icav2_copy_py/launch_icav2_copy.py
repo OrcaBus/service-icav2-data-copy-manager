@@ -1,34 +1,32 @@
 #!/usr/bin/env python3
 
 """
-Lambda to determine if a given ICAv2 Copy Job has finished.
-Returns the status of the job which is one of the following
-* INITIALIZED
-* WAITING_FOR_RESOURCES
-* RUNNING
-* STOPPED
-* SUCCEEDED
-* PARTIALLY_SUCCEEDED
-* FAILED
+Lambda to submit a single ICAv2 batch copy job for a list of source data objects.
+
+Before submitting, any existing files with a 'PARTIAL' status in the destination folder (matching
+the names of the source data) are deleted so the copy can be re-run cleanly.
+
+If the source data list is empty (for example, when every source was an external / non-ICAv2 uri),
+no copy job is submitted and a null jobId is returned so the calling step function can skip the wait.
 
 The event input is
 {
-    "dest_uri": "icav2://path/to/destination/folder/"
-    "source_uris": [
-        "icav2://path/to/data",
-        "icav2://path/to/data2",
-    ]
-    "job_id": null  # Or the job id abcd-1234-efgh-5678
-    "failed_job_list": []  # Empty list or list of failed jobs
-    "job_status": One of RUNNING, SUCCEEDED or FAILED (not the same as the job states, we rerun)
-    "wait_time_seconds": int  # Number of seconds to wait before checking the job status - we add 10 seconds each time we go through this loop
+    "sourceDataList": [
+        {"projectId": "<project-id>", "dataId": "fil.xxx"},
+        {"projectId": "<project-id>", "dataId": "fol.yyy"}
+    ],
+    "destinationData": {"projectId": "<project-id>", "dataId": "fol.zzz"}
 }
 
+The return value is
+{
+    "jobId": "<job-id>"  # Or null when there was no source data to copy
+}
 """
 
 # Standard imports
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, cast
 import logging
 import re
 
@@ -75,11 +73,13 @@ def submit_copy_job(dest_project_data_obj: ProjectData, source_project_data_objs
         )
     )
 
-    return str(project_data_copy_batch_handler(
-        source_data_ids=source_data_ids,
-        destination_project_id=dest_project_data_obj.project_id,
-        destination_folder_path=Path(dest_project_data_obj.data.details.path)
-    ).id)
+    return str(
+        project_data_copy_batch_handler(
+            source_data_ids=source_data_ids,
+            destination_project_id=dest_project_data_obj.project_id,
+            destination_folder_path=Path(cast(str, dest_project_data_obj.data.details.path))
+        ).id
+    )
 
 
 def delete_existing_partial_data(
@@ -152,8 +152,8 @@ def handler(event, context):
     # Get destination uri as project data object
     logger.info("Running job to copy files")
     dest_project_data_obj = get_project_data_obj_by_id(
-        project_id=destination_data.get("projectId"),
-        data_id=destination_data.get("dataId")
+        project_id=cast(str, destination_data.get("projectId")),
+        data_id=cast(str, destination_data.get("dataId")),
     )
 
     # Get Source Uris as project data objects
@@ -162,7 +162,7 @@ def handler(event, context):
     source_project_data_list = list(map(
         lambda source_data_id_iter_: get_project_data_obj_by_id(
             project_id=source_data_id_iter_.get("projectId"),
-            data_id=source_data_id_iter_.get("dataId")
+            data_id=source_data_id_iter_.get("dataId"),
         ),
         source_data_list
     ))
@@ -171,7 +171,7 @@ def handler(event, context):
     logger.info("Delete any existing partial data before running job")
     delete_existing_partial_data(
         dest_project_data_obj,
-        source_project_data_list
+        source_project_data_list,
     )
 
     # Check we have a job to run

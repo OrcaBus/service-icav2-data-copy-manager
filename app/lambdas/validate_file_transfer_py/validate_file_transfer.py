@@ -130,5 +130,8 @@ def handler(event, context):
 
     else:
         raise ValueError(
-            "Invalid inputs. Must provide either fileSizeInBytes and outputUri, or destinationUri and sourceDataUri."
+            "Invalid inputs. Must provide one of: "
+            "fileSizeInBytes and outputUri, "
+            "destinationUri and sourceDataUri, "
+            "or destinationUri and sourceDataId and sourceDataProjectId."
         )

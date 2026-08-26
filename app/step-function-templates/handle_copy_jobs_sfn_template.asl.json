@@ -161,7 +161,8 @@
                 }
               ],
               "Assign": {
-                "jobId": "{% $states.result.Payload.jobId %}"
+                "jobId": "{% $states.result.Payload.jobId %}",
+                "retryCounter": "{% $retryCounter ? $retryCounter : 0 %}"
               },
               "Next": "Has Job to Wait On"
             },
@@ -193,9 +194,6 @@
               "Catch": [
                 {
                   "ErrorEquals": ["States.TaskFailed"],
-                  "Assign": {
-                    "retryCounter": "{% $retryCounter ? $retryCounter : 0 %}"
-                  },
                   "Next": "Failed with retryCounter > 3"
                 }
               ],
